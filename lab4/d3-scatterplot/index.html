@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .circle {
+          fill: goldenrod;
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .label {
+          fill: black;
+          font-size: medium;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <h1>Scatter Plot of Bay Area Boba Chart Ratings</h1>
+
+    <script>
+      // Some code taken from bar chart-csv-example.html in the class examples
+      const width = 950;
+      const height = 425;
+      const margin = { top: 20, right: 40, bottom: 30, left: 200 };
+      let parsedData = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const boba_url = "https://gist.githubusercontent.com/pdotsani/08f3c09c317590e44a3a6041dd574334/raw/d8df7a24f85808ba59d0dd37ada0af0251f3bde4/updated_boba_spots.csv";
+
+      d3.csv(boba_url).then(function(data) {
+        data.forEach(function(d) {
+          parsedData.push({
+            name: d.name,
+            rating: +d.rating
+          });
+        });
+
+        parsedData.sort((a, b) => a.rating - b.rating);
+
+        const y = d3.scaleBand()
+          .domain(parsedData.map(d => d.name))
+          .range([height, 0]);
+          
+        const x = d3.scaleLinear()
+          .domain([3, d3.max(parsedData, d => d.rating)])
+          .nice()
+          .range([0, width/2]);
+        
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x)
+            .ticks(10)
+            .tickSize(-height)
+          );
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y));
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 4)
+          .attr("y", height + margin.bottom)
+          .text("Ratings");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2 - 20)
+          .text("Shop Name");
+
+        svg.selectAll(".circle")
+          .data(parsedData)
+          .enter()
+          .append("circle")
+          .attr("class", "circle")
+          .attr("cx", d => x(d.rating))
+          .attr("cy", (d, i) => height - 22 - i * ((height) / 10))
+          .attr("r", d => 5);
+      });
+    </script>
+  </body>
+</html>

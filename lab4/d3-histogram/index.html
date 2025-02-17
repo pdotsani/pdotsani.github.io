@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .bar {
+          fill: green;
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <h1>Production of Avocados in California by Year</h1>
+
+    <script>
+      // Some code taken from bar chart-csv-example.html in the class examples
+      // Some code taken form example: https://d3-graph-gallery.com/graph/heatmap_basic.html
+      // Tootlip guidance taken from example: https://observablehq.com/@john-guerra/how-to-add-a-tooltip-in-d3
+      const width = 800;
+      const height = 425;
+      const margin = { top: 20, right: 40, bottom: 30, left: 200 };
+      let parsedData = [];
+      let dataByYear = {};
+      let countyCodes = {};
+      let years = [];
+      let counties = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const avocados_url = "https://gist.githubusercontent.com/pdotsani/9ac9069aa7290badc96baf5971b17c75/raw/0187b28603dd7456a879d1dd72899070ca4ed5d9/cali_avocados.csv";
+
+      d3.csv(avocados_url).then(function(data) {
+        
+        data.forEach(function(d) {
+          let year = d['Year'].trim();
+          countyCodes[parseInt(d[' County Code'])] = d[' County'].trim();
+          if (parseInt(year) > 1999 && parseInt(year) < 2011) {
+            if (!dataByYear[parseInt(year)]) {
+              dataByYear[parseInt(year)] = parseInt(d[' Production']);
+            } else {
+              dataByYear[parseInt(year)] += parseInt(d[' Production'])
+            }
+          }
+        });
+
+        Object.keys(dataByYear).forEach((key) => {
+          parsedData.push({ year: parseInt(key), production: dataByYear[parseInt(key)] });
+        })
+
+        parsedData.sort((a,b) => a.year - b.year)
+
+        const y = d3.scaleLinear()
+          .domain([0, d3.max(parsedData.map((d) => d.production))])
+          .range([height, 0]);
+          
+        const x = d3.scaleBand()
+          .domain(parsedData.map((d) => d.year))
+          .range([0, width/2])
+          .padding("0.01");
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x)
+            .tickFormat(d3.format("d"))
+          );
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y));
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 4)
+          .attr("y", height + margin.bottom)
+          .text("Years");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2 - 20)
+          .text("Total Production");
+
+        svg.selectAll(".bar")
+          .data(parsedData)
+          .enter()
+          .append("rect")
+          .attr("class", "bar")
+          .attr("x", d => x(d.year))
+          .attr("y", d => y(d.production))
+          .attr("width", x.bandwidth())
+          .attr("height", d => height - y(d.production))
+          .on("mouseover", (evt, d) => {
+            const [mx, my] = d3.pointer(evt);
+
+            tooltip
+              .attr("x", mx)
+              .attr("y", my)
+              .text(d.production)
+          })
+          .on("mouseout", () => {
+            tooltip.text("");
+          });
+
+          const tooltip = svg
+            .append("text")
+            .attr("class", "tooltip");
+      });
+    </script>
+  </body>
+</html>

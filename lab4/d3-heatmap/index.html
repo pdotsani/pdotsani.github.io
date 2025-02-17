@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <h1>Production of Avocados in California by County</h1>
+
+    <script>
+      // Some code taken from bar chart-csv-example.html in the class examples
+      // Some code taken form example: https://d3-graph-gallery.com/graph/heatmap_basic.html
+      const width = 1050;
+      const height = 425;
+      const margin = { top: 20, right: 40, bottom: 30, left: 200 };
+      let parsedData = [];
+      let countyCodes = {};
+      let years = [];
+      let counties = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const avocados_url = "https://gist.githubusercontent.com/pdotsani/9ac9069aa7290badc96baf5971b17c75/raw/0187b28603dd7456a879d1dd72899070ca4ed5d9/cali_avocados.csv";
+
+      d3.csv(avocados_url).then(function(data) {
+        
+        data.forEach(function(d) {
+          let year = d['Year'].trim();
+          countyCodes[parseInt(d[' County Code'])] = d[' County'].trim();
+          if (year > 1999) {
+            parsedData.push({ year: parseInt(year), county: parseInt(d[' County Code']), production: parseInt(d[' Production']) });
+          }
+        });
+
+        parsedData = parsedData.filter(val => 
+            val.county == 71 || val.county == 37 || val.county == 53 || val.county == 59 ||
+            val.county == 65 || val.county == 73)
+          .sort((a,b) => a.year - b.year)
+          .map(val => ({ ...val, county: countyCodes[val.county] }));
+
+        parsedData.forEach((data) => {
+          if (counties.indexOf(data.county) == -1) {
+            counties.push(data.county);
+          }
+
+          if (years.indexOf(data.year) == -1) {
+            years.push(data.year);
+          }
+        });
+
+        // years.sort((a,b) => a - b);
+
+        const y = d3.scaleBand()
+          .domain(counties)
+          .range([0, height]);
+          
+        const x = d3.scaleBand()
+          .domain(years)
+          .range([0, width])
+          .padding("0.05");
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x)
+            .tickFormat(d3.format("d"))
+          );
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y));
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 2)
+          .attr("y", height + margin.bottom)
+          .text("Years");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2 - 20)
+          .text("County");
+
+        // Build color scale
+        var colorFill = d3.scaleSequential()
+          .range(["#E8ECD0", "#3B4419"])
+          .domain([0, d3.max(parsedData, d => d.production)])
+
+        svg.selectAll(".square")
+          .data(parsedData)
+          .enter()
+          .append("rect")
+          .attr("x", d => x(d.year))
+          .attr("y", d => y(d.county))
+          .attr("width", x.bandwidth())
+          .attr("height", y.bandwidth())
+          .style("fill", d => colorFill(d.production));
+      });
+    </script>
+  </body>
+</html>
