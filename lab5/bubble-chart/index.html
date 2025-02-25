@@ -92,6 +92,21 @@
           .attr("class", "axis axis-y")
           .call(d3.axisLeft(y));
 
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 2)
+          .attr("y", height + margin.bottom)
+          .text("Horsepower");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2 - 50)
+          .text("Model");
+
         svg.selectAll(".circle")
           .data(parsedData)
           .enter()

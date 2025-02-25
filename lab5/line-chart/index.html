@@ -124,6 +124,21 @@
           .attr("cy",d => y(d.humidity))
           .attr("r", 3)
           .attr("fill", "black");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 2)
+          .attr("y", height + margin.bottom)
+          .text("Date");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2)
+          .text("Humidity");
         
         svg.append("path")
           .datum(sanJose)
@@ -152,8 +167,6 @@
           .attr("cy",d => y(d.humidity))
           .attr("r", 3)
           .attr("fill", "black");
-
-
       })
     </script>
   </body>

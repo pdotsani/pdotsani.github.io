@@ -79,8 +79,6 @@
           price_usa: +val['Launched Price (USA)'].split(" ")[1].replace(/,/g,'')
         }));
 
-        console.log(parsedData);
-
         const y = d3.scaleLinear()
           .domain([600, d3.max(parsedData, d => d.price_china)])
           .range([height, 0]);
@@ -97,6 +95,21 @@
         svg.append("g")
           .attr("class", "axis axis-y")
           .call(d3.axisLeft(y));
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 2)
+          .attr("y", height + margin.bottom)
+          .text("USA Price");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2)
+          .text("China Price");
         
         svg.selectAll(".circle")
           .data(parsedData)
