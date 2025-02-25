@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .line {
+          fill: none;
+          stroke: black;
+          stroke-width: 1.5;
+        }
+
+        .strokeBlue {
+          stroke: blue;
+        }
+
+        .strokeRed {
+          stroke: red;
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <h1>Weather data</h1>
+
+    <script>
+      const width = 1200;
+      const height = 600;
+      const margin = { top: 20, right: 40, bottom: 30, left: 150 };
+      let parsedData = [];
+      let dataByYear = {};
+      let countyCodes = {};
+      let years = [];
+      let counties = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const weather_url = "https://gist.githubusercontent.com/pdotsani/2a490b1d97d9ae3db0daf7371a50005c/raw/467601591e2d2115b55c8e725cbe0785d7786b3b/weather_data.csv";
+
+      d3.csv(weather_url).then(function (data) {
+
+        parsedData = data.map((val) => ({
+          location: val.Location,
+          date: new Date(val.Date_Time),
+          temperature: +val.Temperature_C,
+          humidity: +val.Humidity_pct,
+          precipitation: +val.Precipitation_mm,
+        }));
+
+        const sanDiego = parsedData.filter(d => d.location == "San Diego").sort((a,b) => a.date - b.date);
+        const sanJose = parsedData.filter(d => d.location == "San Jose").sort((a,b) => a.date - b.date);
+        const newYork = parsedData.filter(d => d.location == "New York").sort((a,b) => a.date - b.date);
+
+        console.log(parsedData);
+        console.log(sanDiego);
+
+        const y = d3.scaleLinear()
+          .domain(d3.extent(parsedData, d => d.humidity))
+          .nice()
+          .range([height, 0]);
+
+        const x = d3.scaleTime()
+          .domain(d3.extent(parsedData, d => d.date))
+          .range([0, width]);
+
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y));
+
+        const line = d3.line()
+          .x(d => x(d.date))
+          .y(d => y(d.humidity));
+
+        svg.append("path")
+          .datum(sanDiego)
+          .attr("class", "line strokeRed")
+          .attr("d", line);
+        
+        svg.selectAll(".sd-plots")
+          .data(sanDiego)
+          .enter()
+          .append("circle")
+          .attr("cx",d => x(d.date))
+          .attr("cy",d => y(d.humidity))
+          .attr("r", 3)
+          .attr("fill", "black");
+        
+        svg.append("path")
+          .datum(sanJose)
+          .attr("class", "line")
+          .attr("d", line);
+        
+        svg.selectAll(".sj-plots")
+          .data(sanJose)
+          .enter()
+          .append("circle")
+          .attr("cx",d => x(d.date))
+          .attr("cy",d => y(d.humidity))
+          .attr("r", 3)
+          .attr("fill", "black");
+        
+        svg.append("path")
+          .datum(newYork)
+          .attr("class", "line strokeBlue")
+          .attr("d", line);
+
+        svg.selectAll(".ny-plots")
+          .data(newYork)
+          .enter()
+          .append("circle")
+          .attr("cx",d => x(d.date))
+          .attr("cy",d => y(d.humidity))
+          .attr("r", 3)
+          .attr("fill", "black");
+
+
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: white;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <h1>Car.csv comparison hp to cylinders to mpg</h1>
+
+    <script>
+      const width = 800;
+      const height = 600;
+      const margin = { top: 20, right: 40, bottom: 30, left: 150 };
+      let parsedData = [];
+      let dataByYear = {};
+      let countyCodes = {};
+      let years = [];
+      let counties = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const cars_url = "https://gist.githubusercontent.com/pdotsani/6613fbaba04dd06ecf328045dfc1121e/raw/86fdf766a47eaabdb17e25ff8c0374dc8dc2cd00/mtcars.csv";
+
+      d3.csv(cars_url).then(function (data) {
+
+        parsedData = data.map((val) => ({
+          model: val.model,
+          mpg: +val.mpg,
+          cyl: +val.cyl,
+          hp: +val.hp,
+        }));
+
+        const y = d3.scaleBand()
+          .domain(parsedData.map((d) => d.model))
+          .range([height, 0]);
+
+        const x = d3.scaleLinear()
+          .domain([0, d3.max(parsedData, d => d.mpg)])
+          .range([0, width]);
+
+        const r = d3.scaleSqrt()
+          .domain([0, d3.max(parsedData.map((d) => d.hp))])
+          .range([0, 10]);
+
+        const fill = d3.scaleSequential()
+          .range(["lightgreen", "gray"])
+          .domain([4, d3.max(parsedData, d => d.cyl)]);
+
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y));
+
+        svg.selectAll(".circle")
+          .data(parsedData)
+          .enter()
+          .append("circle")
+          .attr("class", "circle")
+          .attr("cx", d => x(d.mpg))
+          .attr("cy", d => y(d.model))
+          .attr("r", d => r(d.hp))
+          .attr("fill", d => fill(d.cyl))
+          .on("mouseover", (evt, d) => {
+            const [mx, my] = d3.pointer(evt);
+
+            tooltip
+              .attr("transform", `translate(${mx + 10},${my - 10})`)
+              .style("visibility", "visible");
+
+            tooltipText.selectAll("*").remove();
+            
+            tooltipText.append("tspan")
+              .attr("x", 10)
+              .attr("dy", "0em")
+              .text("mpg: " + d.model);
+            
+            tooltipText.append("tspan")
+              .attr("x", 10)
+              .attr("dy", "1.2em")
+              .text("mpg: " + d.mpg);
+            
+            tooltipText.append("tspan")
+              .attr("x", 10)
+              .attr("dy", "1.2em")
+              .text("cyl: " + d.cyl);
+            
+            tooltipText.append("tspan")
+              .attr("x", 10)
+              .attr("dy", "1.2em")
+              .text("hp: " + d.hp);
+          })
+          .on("mouseout", () => {
+            tooltip.style("visibility", "hidden");
+          });
+        
+        const tooltip = svg
+          .append("g")
+          .attr("class", "tooltip")
+          .style("visibility", "hidden");
+
+        tooltip.append("rect")
+          .attr("width", 100)  
+          .attr("height", 100)  
+          .attr("fill", "white");
+        
+        const tooltipText = tooltip.append("text")
+          .attr("x", 10)       
+          .attr("y", 20)
+          .attr("fill", "black");
+      })
+    </script>
+  </body>
+</html>

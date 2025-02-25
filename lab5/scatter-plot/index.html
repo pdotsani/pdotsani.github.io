@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .line {
+          fill: none;
+          stroke: black;
+          stroke-width: 1.5;
+        }
+
+        .strokeBlue {
+          stroke: blue;
+        }
+
+        .strokeRed {
+          stroke: red;
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <h1>iPhone prices USA vs China</h1>
+
+    <script>
+      const width = 1200;
+      const height = 600;
+      const margin = { top: 20, right: 40, bottom: 30, left: 150 };
+      let parsedData = [];
+      let dataByYear = {};
+      let countyCodes = {};
+      let years = [];
+      let counties = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const weather_url = "https://gist.githubusercontent.com/pdotsani/e391e6f7c8f4cbfcaa458030d85dbb6a/raw/4f272cc931f0e4ce569d5103d4e4a6ca52823f97/iphones_dataset.csv";
+
+      d3.csv(weather_url).then(function (data) {
+
+        parsedData = data.map((val) => ({
+          model: val['Model Name'],
+          price_china: +val['Launched Price (China)'].split(" ")[1].replace(/,/g,''),
+          price_usa: +val['Launched Price (USA)'].split(" ")[1].replace(/,/g,'')
+        }));
+
+        console.log(parsedData);
+
+        const y = d3.scaleLinear()
+          .domain([600, d3.max(parsedData, d => d.price_china)])
+          .range([height, 0]);
+
+        const x = d3.scaleLinear()
+          .domain([600, d3.max(parsedData, d => d.price_usa)])
+          .range([0, width]);
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y));
+        
+        svg.selectAll(".circle")
+          .data(parsedData)
+          .enter()
+          .append("circle")
+          .attr("cx",d => x(d.price_usa))
+          .attr("cy",d => y(d.price_china))
+          .attr("r", 3)
+          .attr("fill", "black");
+      })
+    </script>
+  </body>
+</html>
