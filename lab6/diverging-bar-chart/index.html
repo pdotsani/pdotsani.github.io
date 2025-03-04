@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        h1 {
+          text-align: center;
+        }
+
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  </head>
+  <body>
+    <h1>Weather in January</h1>
+
+    <script>
+      const width = 950;
+      const height = 550;
+      const margin = { top: 20, right: 40, bottom: 150, left: 300 };
+      let parsedData = [];
+      const weather_data = "https://gist.githubusercontent.com/pdotsani/7593aba704aea9fe1e2667fc61f0b2a3/raw/92c2b4b097599f123b83a9818e363549ef3e51cc/weather_data_reduced.csv";
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      d3.csv(weather_data).then(function(data) {
+        data.forEach(function(d) {
+          parsedData.push({
+            location: d.Location, 
+            temp: +d['Temperature_C']
+          });
+        });
+
+
+        const y = d3.scaleBand()
+          .domain(parsedData.map(d => d.location))
+          .range([height, 0])
+          .padding(0.15);
+
+          
+        const x = d3.scaleLinear()
+          .domain(d3.extent(parsedData, d => d.temp))
+          .nice()
+          .range([0, width]);
+
+        
+        const scaleT = d3.scaleLinear()
+          .domain([d3.min(parsedData, d => d.temp), 0, d3.max(parsedData, d => d.temp)])
+          .nice()
+          .range(["rgb(146,197,222)", "rgb(247,247,247)", "rgb(244,165,130)"]);
+          
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+          
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .attr("transform", `translate(${x(0)}, 0)`)
+          .call(d3.axisLeft(y).tickFormat(""))
+        
+        svg.append("g")
+          .attr("class", "legendLinear")
+          .attr("transform", `translate(${width/2.35},${height + 70})`);
+
+        var legendLinear = d3.legendColor()
+          .shapeWidth(30)
+          .orient('horizontal')
+          .scale(scaleT);
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 2)
+          .attr("y", height + 50)
+          .text("Temperature (C°)");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2)
+          .text("Location");
+
+        svg.select(".legendLinear")
+          .call(legendLinear);
+
+        const bargroup = svg.selectAll(".bar")
+          .data(parsedData)
+          .enter()
+          .append("g");
+        
+        bargroup.append("rect")
+          .attr("class", "bar")
+          .attr("x",d => d.temp < 0 ? x(d.temp) : x(0)) // Normalizing negative and positive values along x axis
+          .attr("width", d => Math.abs(x(d.temp) - x(0))) // Converting the scale to width to determine position
+          .attr("y", d => y(d.location))
+          .attr("height", d => y.bandwidth())
+          .attr("fill", d => scaleT(d.temp));
+
+        bargroup.append("text")
+          .attr("x", d => d.temp < 0 ? x(d.temp) - 5 : x(d.temp) + 5)
+          .attr("y", d => y(d.location))
+          .text(d => d.location)
+          .attr("font-size", "12px")
+          .attr("fill", "black");
+        
+        
+
+      })
+    </script>
+  </body>
+</html>

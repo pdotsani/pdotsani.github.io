@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .line {
+          fill: none;
+          stroke: black;
+          stroke-width: 1.5;
+        }
+
+        .strokeBlue {
+          stroke: rgb(56,108,176);
+        }
+
+        .strokeRed {
+          stroke: rgb(253,192,134);
+        }
+
+        .strokePurple {
+          stroke: rgb(190,174,212);
+        }
+
+        .strokeGreen {
+          stroke: rgb(127,201,127);
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  </head>
+  <body>
+    <h1>Average CPI of domestic goods</h1>
+
+    <script>
+      const width = 1200;
+      const height = 600;
+      const margin = { top: 20, right: 40, bottom: 100, left: 150 };
+      let parsedData = [];
+      let dataByYear = {};
+      let countyCodes = {};
+      let years = [];
+      let counties = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const weather_url = "https://gist.githubusercontent.com/pdotsani/fc32d77645aa96e490b6e73b4baafb22/raw/e637d0ffd0cc93d0c751a337bc075fec2c27ff31/consumer_price_index.csv";
+
+      d3.csv(weather_url).then(function (data) {
+        
+        const parsedData = data.map(d => ({
+          year: +d.Year, 
+          grain: +d['Data.Grain.Average'],
+          fuel: +d['Data.Fuel.Average'],
+          meat: +d['Data.Meat.Average'],
+          metal: +d['Data.Metal.Average'],
+        }));
+        
+        const prices = [...parsedData.map(d => d.grain), 
+          ...parsedData.map(d => d.fuel),
+          ...parsedData.map(d => d.meat),
+          ...parsedData.map(d => d.metal),
+        ].sort((a,b) => a - b);
+        
+        console.log(parsedData);
+
+        const y = d3.scaleLinear()
+          .domain(d3.extent(prices))
+          .nice()
+          .range([height, 0]);
+
+        const x = d3.scaleLinear()
+          .domain(d3.extent(parsedData, d => d.year))
+          .range([0, width]);
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y));
+        
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 2)
+          .attr("y", height + 40)
+          .text("Year");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2)
+          .text("Price Index");
+
+        const grainLine = d3.line()
+          .x(d => x(d.year))
+          .y(d => y(d.grain));
+        
+        const fuelLine = d3.line()
+          .x(d => x(d.year))
+          .y(d => y(d.fuel));
+        
+        const meatLine = d3.line()
+          .x(d => x(d.year))
+          .y(d => y(d.meat));
+        
+        const metalLine = d3.line()
+          .x(d => x(d.year))
+          .y(d => y(d.metal));
+
+        const scale = d3.scaleOrdinal()
+          .domain(["grain","fuel","meat","metal"])
+          .range(["rgb(253,192,134)","rgb(56,108,176)","rgb(190,174,212)","rgb(127,201,127)"]);
+        
+        svg.append("g")
+          .attr("class", "legendOrdinal")
+          .attr("transform", `translate(50,${height / 4})`);
+
+        const legendQ = d3.legendColor()
+          .shape("path", d3.symbol().type(d3.symbolSquare).size(150)())
+          .shapePadding(10)
+          .cellFilter(function(d){ return d.label !== "e" })
+          .scale(scale);
+
+        svg.select(".legendOrdinal")
+          .call(legendQ);
+
+        svg.append("path")
+          .datum(parsedData)
+          .attr("class", "line strokeRed")
+          .attr("d", grainLine);
+        
+        svg.append("path")
+          .datum(parsedData)
+          .attr("class", "line strokeBlue")
+          .attr("d", fuelLine);
+        
+        svg.append("path")
+          .datum(parsedData)
+          .attr("class", "line strokePurple")
+          .attr("d", meatLine);
+        
+        svg.append("path")
+          .datum(parsedData)
+          .attr("class", "line strokeGreen")
+          .attr("d", metalLine);
+      })
+    </script>
+  </body>
+</html>

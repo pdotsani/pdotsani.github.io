@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        h1 {
+          text-align: center;
+        }
+
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  </head>
+  <body>
+    <h1>Bay Area Boba Spot Ratings</h1>
+
+    <script>
+      const width = 950;
+      const height = 550;
+      const margin = { top: 20, right: 40, bottom: 150, left: 300 };
+      let parsedData = [];
+      const boba_spots = "https://gist.githubusercontent.com/pdotsani/08f3c09c317590e44a3a6041dd574334/raw/d8df7a24f85808ba59d0dd37ada0af0251f3bde4/updated_boba_spots.csv";
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      d3.csv(boba_spots).then(function(data) {
+        data.forEach(function(d) {
+          parsedData.push({
+            ...d,
+            rating: +d.rating
+          });
+        });
+
+        parsedData.sort((a, b) => b.rating - a.rating);
+
+        const y = d3.scaleBand()
+          .domain(parsedData.map(d => d.name))
+          .range([0, height])
+          .padding(0.15);
+
+          
+        const x = d3.scaleLinear()
+          .domain([0, d3.max(parsedData, d => d.rating)])
+          .nice()
+          .range([0, width]);
+        
+        const scaleR = d3.scaleLinear()
+          .domain(d3.extent(parsedData, d => d.rating))
+          .range(["rgb(239,243,255)", "rgb(8,81,156)"])
+          
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y).ticks(5));
+        
+        svg.append("g")
+          .attr("class", "legendLinear")
+          .attr("transform", `translate(${width/2.35},${height + 70})`);
+
+        var legendLinear = d3.legendColor()
+          .shapeWidth(30)
+          .orient('horizontal')
+          .scale(scaleR);
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 2)
+          .attr("y", height + 50)
+          .text("Shop Name");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2)
+          .text("Ratings");
+
+        svg.select(".legendLinear")
+          .call(legendLinear);
+
+        svg.selectAll(".bar")
+          .data(parsedData)
+          .enter()
+          .append("rect")
+          .attr("class", "bar")
+          .attr("x", 0)
+          .attr("width",d => x(d.rating))
+          .attr("y", d => y(d.name))
+          .attr("height", d => y.bandwidth())
+          .attr("fill", d => scaleR(d.rating));
+      })
+    </script>
+  </body>
+</html>
