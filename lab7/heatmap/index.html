@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .line {
+          fill: none;
+          stroke: black;
+          stroke-width: 1.5;
+        }
+
+        .strokeBlue {
+          stroke: rgb(56,108,176);
+        }
+
+        .strokeRed {
+          stroke: rgb(253,192,134);
+        }
+
+        .strokePurple {
+          stroke: rgb(190,174,212);
+        }
+
+        .strokeGreen {
+          stroke: rgb(127,201,127);
+        }
+
+        .strokePeach {
+          stroke: rgb(251,180,174);
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  </head>
+  <body>
+    <h1>Avocado Harvests in California</h1>
+
+    <script>
+      const width = 1200;
+      const height = 600;
+      const margin = { top: 20, right: 40, bottom: 100, left: 150 };
+      let parsedData = [];
+      let dataByYear = {};
+      let countyCodes = {};
+      let years = [];
+      let counties = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const avocados_url = "https://gist.githubusercontent.com/pdotsani/9ac9069aa7290badc96baf5971b17c75/raw/0187b28603dd7456a879d1dd72899070ca4ed5d9/cali_avocados.csv";
+
+      d3.csv(avocados_url).then(function (data) {
+
+        const parseYear = d3.timeParse("%Y");
+        
+        const parsedData = data.map(d => ({
+          countyCode: +d[' County Code'],
+          year: parseYear(+d.Year),
+          harvested: +d[' Harvested Acres']
+        }));
+
+        let counties = {};
+
+        data.forEach(d => {
+          counties[+d[' County Code']] = d[' County'].trim();
+        });
+
+        const countyCodes = Object.keys(counties).map(d => +d);
+        // const dates = parsedData.map(d => d.year).sort((a, b) => a - b);
+
+        const y = d3.scaleBand()
+          .domain(countyCodes)
+          .range([0, height]);
+          
+        const x = d3.scaleTime()
+          .domain(d3.extent(parsedData.map(d => d.year)))
+          .range([0, width]);
+
+        const scale = d3.scaleOrdinal()
+          .domain([0, d3.max(parsedData.map(d => d.harvested))]) 
+          .range(["rgb(237,248,233)", "rgb(0,109,44)"]);
+
+        var colorFill = d3.scaleSequential()
+          .range(["rgb(237,248,233)", "rgb(0,109,44)"])
+          .domain(d3.extent(parsedData.map(d => d.harvested))) 
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y)
+            .tickValues(countyCodes)
+            .tickFormat(d => counties[d])
+          );
+
+        svg.selectAll(".square")
+          .data(parsedData)
+          .enter()
+          .append("rect")
+          .attr("x", d => x(d.year))
+          .attr("y", d => y(d.countyCode))
+          .attr("width", y.bandwidth())
+          .attr("height", y.bandwidth())
+          .style("fill", d => colorFill(d.harvested))
+          .on("mouseover", (evt, d) => {
+            const [mx, my] = d3.pointer(evt);
+
+            tooltip
+              .attr("transform", `translate(${mx + 10},${my - 10})`)
+              .style("visibility", "visible");
+
+            tooltipText.selectAll("*").remove();
+            
+            tooltipText.append("tspan")
+              .attr("x", 10)
+              .attr("dy", "0em")
+              .text(counties[d.countyCode]);
+            
+            tooltipText.append("tspan")
+              .attr("x", 10)
+              .attr("dy", "1.2em")
+              .text("harvested: " + d.harvested);
+            
+          })
+          .on("mouseout", () => {
+            tooltip.style("visibility", "hidden");
+          });
+
+        const tooltip = svg
+          .append("g")
+          .attr("class", "tooltip")
+          .style("visibility", "hidden");
+
+        tooltip.append("rect")
+          .attr("width", 200)  
+          .attr("height", 50)  
+          .attr("fill", "white");
+        
+        const tooltipText = tooltip.append("text")
+          .attr("x", 10)       
+          .attr("y", 20)
+          .attr("fill", "black");
+      })
+    </script>
+  </body>
+</html>

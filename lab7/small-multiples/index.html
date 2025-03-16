@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .line {
+          fill: none;
+          stroke: black;
+          stroke-width: 1.5;
+        }
+
+        .strokeBlue {
+          stroke: rgb(56,108,176);
+        }
+
+        .strokeRed {
+          stroke: rgb(253,192,134);
+        }
+
+        .strokePurple {
+          stroke: rgb(190,174,212);
+        }
+
+        .strokeGreen {
+          stroke: rgb(127,201,127);
+        }
+
+        .strokePeach {
+          stroke: rgb(251,180,174);
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  </head>
+  <body>
+    <h1>Humidity Trends in 5 US Cities (Small Multiples)</h1>
+
+    <script>
+      const width = 1200;
+      const height = 800;
+      const margin = { top: 20, right: 40, bottom: 100, left: 150 };
+      let parsedData = [];
+      let dataByYear = {};
+      let countyCodes = {};
+      let years = [];
+      let counties = [];
+
+      const svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const weather_url = "https://gist.githubusercontent.com/pdotsani/c24142bab79136c03442afc073e63c22/raw/18c56577a0dec2477e0ab729d4588719aa6e0f20/weather_data.csv";
+
+      d3.csv(weather_url).then(function (data) {
+        
+        const parsedData = data.map(d => ({
+          location: d.Location,
+          date: new Date(d['Date_Time']),
+          humidity: +d['Humidity_pct']
+        }));
+
+        const locations = [...new Set(parsedData.map((d) => d.location))];
+
+        const sanDiego = parsedData.filter((d) => d.location == locations[0]).sort((a, b) => a.date - b.date);
+        const philadelphia = parsedData.filter((d) => d.location == locations[1]).sort((a, b) => a.date - b.date);
+        const sanAntonio = parsedData.filter((d) => d.location == locations[2]).sort((a, b) => a.date - b.date);
+        const sanJose = parsedData.filter((d) => d.location == locations[3]).sort((a, b) => a.date - b.date);
+        const newYork = parsedData.filter((d) => d.location == locations[4]).sort((a, b) => a.date - b.date);
+
+        const tempRange = [sanDiego.map((d) => d.humidity),
+          ...philadelphia.map((d) => d.humidity),
+          ...sanAntonio.map((d) => d.humidity),
+          ...sanJose.map((d) => d.humidity),
+          ...newYork.map((d) => d.humidity)].sort();
+        
+        const timeRange = [sanDiego.map((d) => d.date),
+          ...philadelphia.map((d) => d.date),
+          ...sanAntonio.map((d) => d.date),
+          ...sanJose.map((d) => d.date),
+          ...newYork.map((d) => d.date)].sort();
+
+        const locationRange = locations.slice(0,5);
+
+        const y = d3.scaleLinear()
+          .domain(d3.extent(tempRange))
+          .nice()
+          .range([height/5, 0]);
+        const y2 = d3.scaleLinear()
+          .domain(d3.extent(tempRange))
+          .nice()
+          .range([(height/5) * 2, height/5]);
+        const y3 = d3.scaleLinear()
+          .domain(d3.extent(tempRange))
+          .nice()
+          .range([(height/5) * 3, (height/5) * 2]);
+        const y4 = d3.scaleLinear()
+          .domain(d3.extent(tempRange))
+          .nice()
+          .range([(height/5) * 4, (height/5) * 3]);
+        const y5 = d3.scaleLinear()
+          .domain(d3.extent(tempRange))
+          .nice()
+          .range([(height/5) * 5, (height/5) * 4]);
+
+        const x = d3.scaleTime()
+          .domain(d3.extent(timeRange))
+          .range([0, width]);
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .attr('transform', 'translate(0,-20)')
+          .call(d3.axisLeft(y).ticks(3));
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .attr('transform', 'translate(0,-15)')
+          .call(d3.axisLeft(y2).ticks(3));
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .attr('transform', 'translate(0,-10)')
+          .call(d3.axisLeft(y3).ticks(3));
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .attr('transform', 'translate(0,-5)')
+          .call(d3.axisLeft(y4).ticks(3));
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y5).ticks(3));
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("x", width / 2)
+          .attr("y", height + 40)
+          .text("Date");
+
+        svg.append("text")
+          .attr("class", "label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -height / 2)
+          .attr("y", -margin.left / 2)
+          .text("Temperature (C)");
+
+        const scale = d3.scaleOrdinal()
+          .domain(locationRange)
+          .range(["rgb(253,192,134)","rgb(56,108,176)","rgb(127,201,127)","rgb(190,174,212)","rgb(251,180,174)"]);
+        
+        svg.append("g")
+          .attr("class", "legendOrdinal")
+          .attr("transform", `translate(-120,${height / 6})`);
+
+        const legendQ = d3.legendColor()
+          .shape("path", d3.symbol().type(d3.symbolSquare).size(150)())
+          .shapePadding(10)
+          .cellFilter(function(d){ return d.label !== "e" })
+          .scale(scale);
+
+        const line = d3.line()
+          .x(d => x(d.date))
+          .y(d => y(d.humidity) - 20);
+        const line2 = d3.line()
+          .x(d => x(d.date))
+          .y(d => y2(d.humidity) - 15);
+        const line3 = d3.line()
+          .x(d => x(d.date))
+          .y(d => y3(d.humidity) - 10);
+        const line4 = d3.line()
+          .x(d => x(d.date))
+          .y(d => y4(d.humidity) - 5);
+        const line5 = d3.line()
+          .x(d => x(d.date))
+          .y(d => y5(d.humidity));
+
+        svg.select(".legendOrdinal")
+          .call(legendQ);
+
+        svg.append("path")
+          .datum(sanDiego)
+          .attr("class", "line strokeRed")
+          .attr("d", line);
+
+        svg.append("path")
+          .datum(philadelphia)
+          .attr("class", "line strokeBlue")
+          .attr("d", line2);
+
+        svg.append("path")
+          .datum(sanAntonio)
+          .attr("class", "line strokeGreen")
+          .attr("d", line3);
+
+        svg.append("path")
+          .datum(sanJose)
+          .attr("class", "line strokePurple")
+          .attr("d", line4);
+
+        svg.append("path")
+          .datum(newYork)
+          .attr("class", "line strokePeach")
+          .attr("d", line5);
+                
+      })
+    </script>
+  </body>
+</html>
