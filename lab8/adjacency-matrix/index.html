@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>soc-tribes adjacency matrix</title>
+      <style>
+        #svg-wrapper {
+          width: 100%;
+          height: 100%;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <h1>soc-tribes adjacency matrix</h1>
+
+    <svg class="chart" width="600" height="600"></svg>
+
+    <script>
+      // Derived from https://gist.github.com/zwang155/cfb7a70b6d08c1089b123235b874da37
+      let margin = {left: 36, right: 0, top: 36, bottom: 0};
+      let svg = d3.select('svg');
+      let width = svg.attr('width') - margin.left - margin.right;
+      let height = svg.attr('height') - margin.top - margin.bottom;
+
+      let tooltip = d3.select('body').append('div')
+          .attr('class', 'tooltip')
+          .style('opacity', 0)
+
+      let xScale = d3.scaleBand().range([margin.left, margin.left + width]).padding(0.05),
+          yScale = d3.scaleBand().range([margin.top, margin.top + height]).padding(0.05)
+
+      let hashNode = (x, y) => x + ' -> ' + y
+
+      d3.csv('/lab8/adjacency-matrix/soc-tribes.csv', d => {
+          return {
+              source: +d['sym'],
+              target: +d['signed'],
+              value: +d['lines']
+          }
+      }).then(dataset => {
+          let nodeSet = new Set()
+          dataset.forEach(elem => {
+              nodeSet.add(elem.source)
+              nodeSet.add(elem.target)
+          })
+
+          let nodes = []
+          nodeSet.forEach(elem => nodes.push(elem))
+          nodes.sort((a, b) => a - b)
+
+          let grids = new Map()
+          for (let src of nodes) {
+              for (let tgt of nodes) {
+                  grids.set(hashNode(src, tgt), {x: tgt, y: src, value: 0})
+              }
+          }
+          dataset.forEach(elem => {
+              grids.get(hashNode(elem.source, elem.target)).value = elem.value
+              grids.get(hashNode(elem.target, elem.source)).value = elem.value
+          })
+
+          xScale.domain(nodes)
+          yScale.domain(nodes)
+
+          svg.selectAll('g')
+              .data(nodes)
+              .enter()
+              .append('text')
+              .attr('text-anchor', 'middle')
+              .attr('x', margin.left / 3)
+              .attr('y', d => yScale(d) + 4)
+              .text(d => d)
+
+          svg.selectAll('g')
+              .data(nodes)
+              .enter()
+              .append('text')
+              .attr('text-anchor', 'middle')
+              .attr('x', d => xScale(d))
+              .attr('y', margin.top / 2)
+              .text(d => d)
+
+          svg.selectAll('rect')
+              .data(grids)
+              .enter()
+              .append('rect')
+              .attr('x', d => xScale(d[1].x) - xScale.bandwidth() / 2)
+              .attr('y', d => yScale(d[1].y) - xScale.bandwidth() / 2)
+              .attr('width', xScale.bandwidth())
+              .attr('height', yScale.bandwidth())
+              .attr('stroke', 'gray')
+              .attr('stroke-width', 0.5)
+              .attr('fill', d => d[1].value === 0 ? '#ffffff' : '#998ec3')
+              .on('mouseover', function(event, d) {
+                  svg.selectAll('rect')
+                    // commented code highlights row and column of the hovered cell
+                    // .attr('stroke-width', g => (g[1].x === d[1].x || g[1].y === d[1].y) ? 2 : 0.5)
+                    .attr('stroke-width', g => (g[1].x === d[1].x && g[1].y === d[1].y) ? 2 : 0.5)
+                  tooltip.transition().duration(200).style('opacity', 0.9)
+                  tooltip.html('link: ' + d[0])
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px')
+              })
+              .on('mouseout', function() {
+                  svg.selectAll('rect').attr('stroke-width', 0.5)
+                  tooltip.transition().duration(600).style('opacity', 0)
+              })
+      })
+    </script>
+  </body>
+</html>
