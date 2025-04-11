@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>D3 Bar Chart from CSV</title>
+      <style>
+        .line {
+          fill: none;
+          stroke: gainsboro;
+          stroke-width: 1.5;
+        }
+
+        .fillRed {
+          fill: none;
+          stroke: rgb(253,192,134);
+          stroke-width: 1.5;
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+      </style>
+      <script src="https://d3js.org/d3.v7.min.js"></script>
+      <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+      <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  </head>
+  <body>
+    <h1>Remittances from 2000 to 2023</h1>
+    <div id="remittances"></div>
+
+    <h1>Global Remittances totals from 2000 to 2023</h1>
+    <div id="remittances-global"></div>
+    
+    <h1>Global Remittances totals from 2000 to 2023</h1>
+    <div id="remittances-pi"></div>
+    
+    <h1>Global Remittances totals from 2000 to 2023</h1>
+    <div id="gdp-pi"></div>
+
+    <script>
+      const width = 1200;
+      const height = 600;
+      const margin = { top: 20, right: 40, bottom: 100, left: 150 };
+      let parsedData = [];
+
+      let year = d3.timeParse("%Y");
+
+      const svg = d3.select("#remittances")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const remittances = "https://gist.githubusercontent.com/pdotsani/4d3756927d63f71f6dc60c17e3cdb2a9/raw/4e9e2be97ca59b9e275836a099dd8a5e3c0702a5/remittances";
+
+      d3.tsv(remittances).then(function (data) {
+
+        console.log(data.length);
+        console.log(data); 
+        
+        const parsedData = data.map(d => ({
+          value: +d.value,
+          year: year(d.year),
+          country: d.country
+        }));
+
+        const countries = [...new Set(data.map((d) => d.country))];
+        const timeRange = data.map((d) => year(d.year));
+        const valueRange = data.map((d) => +d.value);
+
+        const y = d3.scaleLinear()
+          .domain(d3.extent(valueRange))
+          .nice()
+          .range([height, 0]);
+
+        const x = d3.scaleTime()
+          .domain(d3.extent(timeRange))
+          .range([0, width]);
+
+        svg.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(x));
+
+        svg.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(y).tickFormat(d => {
+            return d3.format("$,.1f")(d / 1e9) + "B";
+          }));
+
+        // svg.append("text")
+        //   .attr("class", "label")
+        //   .attr("text-anchor", "middle")
+        //   .attr("x", width / 2)
+        //   .attr("y", height + 40)
+        //   .text("Year");
+
+        // svg.append("text")
+        //   .attr("class", "label")
+        //   .attr("text-anchor", "middle")
+        //   .attr("transform", "rotate(-90)")
+        //   .attr("x", -height / 2)
+        //   .attr("y", -margin.left / 2)
+        //   .text("Amount");
+
+        const line = d3.line()
+          .x(d => x(d.year))
+          .y(d => y(d.value));
+
+        for (let country of countries) {
+          const countriesData = parsedData.filter((d) => d.country == country);
+          svg.append("path")
+            .datum(countriesData)
+            .attr("data-country", country)
+            .attr("class", country == "Philippines" ? "fillRed" : "line")
+            .attr("d", line);
+        }
+
+        svg.selectAll("path[data-country='Philippines']")
+          .raise();
+      })
+    </script>
+    <script>
+      const svgMap = d3.select("#remittances-global")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const path = d3.geoPath()
+      const projection = d3.geoMercator()
+        .scale(100)
+        .center([0, 0])
+        .translate([width / 2, height / 2]);
+
+      
+      
+      const worldCloud = "https://gist.githubusercontent.com/pdotsani/1f891400eb2fbb943d3be57dc84bc5f7/raw/5e266250cfd560ca54f76e91ed587655542c7a92/world_data";
+      const worldGeoJson = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
+
+      Promise.all([
+        d3.tsv(worldCloud),
+        d3.tsv(remittances),
+        d3.json(worldGeoJson)
+      ]).then(function ([world, remittances, worldJson]) {
+        console.log(worldJson)
+        const data = d3.map(worldJson.features, d => d.properties);
+
+        console.log("world", world);
+
+        const worldData = [...new Set(world.map(d => ({
+          code: d['Country Code'],
+          country: d['Country Name'],
+        })))]
+
+        const countryCodes = {};
+
+        worldData.forEach(d => {
+          countryCodes[d.country] = d.code;
+        });
+
+        console.log("word data", worldData);
+
+        let year = d3.timeParse("%Y");
+        
+        const countries = [...new Set(remittances.map((d) => d.country))];
+        
+        const parsedData = countries.map(d => ({
+          value: remittances.filter(x => x.country == d).map((d) => +d.value).reduce((a, b) => a + b, 0),
+          country: d
+        }));
+
+        const mapData = parsedData.map(d => ({
+          code: countryCodes[d.country],
+          value: d.value
+        }));
+
+        worldJson.features.forEach(d => {
+          const country = mapData.filter(x => x.code == d.id)[0];
+          if (country == undefined) {
+            d.properties.value = 0;
+            return;
+          }
+          d.properties.value = country.value;
+        });
+
+        console.log("map data", mapData)
+
+        const valueRange = parsedData.map((d) => +d.value);
+
+        const scale = d3.scaleQuantile()
+          .domain(d3.extent(valueRange))
+          .range(d3.schemeGreens[7]);
+
+        svgMap.append("g")
+          .selectAll("path")
+          .data(worldJson.features)
+          .enter()
+          .append("path")
+          .attr("d", d3.geoPath().projection(projection))
+          .attr("fill", d => scale(d.properties.value));
+      })
+    </script>
+    <script>
+      const svgRemittances = d3.select("#remittances-pi")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const svgGdp = d3.select("#gdp-pi")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const pi_data = "https://gist.githubusercontent.com/pdotsani/1777e42c0e7d34940dbb32ba733f81d8/raw/734376210e455e549909e78cb4095c0a5c064040/world_bank_pi_data.csv";
+
+      d3.csv(pi_data).then(function (data) {
+        console.log(data);
+
+        const personalRemittances = data.filter(d => d["Indicator Name"] == "Personal remittances received (% of GDP)")
+          .map(d => ({
+            year: d.Year,
+            value: +d["Pivot Field Values"]
+          }));
+        
+        const remittanceRange = personalRemittances.map((d) => d.value);
+
+        const yRemittance = d3.scaleLinear()
+          .domain(d3.extent(remittanceRange))
+          .nice()
+          .range([height, 0]);
+
+        const xRemittance = d3.scaleTime()
+          .domain(d3.extent(personalRemittances.map((d) => year(d.year))))
+          .range([0, width]);
+
+        const line = d3.line()
+          .x(d => xRemittance(year(d.year)))
+          .y(d => yRemittance(d.value));
+
+        svgRemittances.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(xRemittance));
+
+        svgRemittances.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(yRemittance));
+
+        svgRemittances.append("path")
+          .datum(personalRemittances)
+          .attr("class", "line strokeRed")
+          .attr("d", line);
+          
+        const gdpPerCapita = data.filter(d => d["Indicator Name"] == "GDP per capita (current US$)")
+          .map(d => ({
+            year: d.Year,
+            value: +d["Pivot Field Values"]
+          }));
+
+        const gdpRange = gdpPerCapita.map((d) => d.value);
+
+        const yGdp = d3.scaleLinear()
+          .domain(d3.extent(gdpRange))
+          .nice()
+          .range([height, 0]);
+
+        const xGdp = d3.scaleTime()
+          .domain(d3.extent(gdpPerCapita.map((d) => year(d.year))))
+          .range([0, width]);
+
+        const lineGdp = d3.line()
+          .x(d => xGdp(year(d.year)))
+          .y(d => yGdp(d.value));
+
+        svgGdp.append("g")
+          .attr("class", "axis axis-x")
+          .attr("transform", `translate(0, ${height})`)
+          .call(d3.axisBottom(xGdp));
+
+        svgGdp.append("g")
+          .attr("class", "axis axis-y")
+          .call(d3.axisLeft(yGdp));
+
+        svgGdp.append("path")
+          .datum(gdpPerCapita)
+          .attr("class", "line strokeRed")
+          .attr("d", lineGdp);
+
+        console.log(personalRemittances);
+        console.log(gdpPerCapita);
+      });
+    </script>
+  </body>
+</html>
