@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Lab 9.2</title>
+	<style>
+        .map-path {
+          fill: none;
+          stroke: black;
+          stroke-width: 0.5;
+        }
+        .line 
+        {
+          fill: none;
+          stroke: gainsboro;
+          stroke-width: 1.5;
+        }
+
+        .fillRed {
+          fill: none;
+          stroke: rgb(253,192,134);
+          stroke-width: 1.5;
+        }
+
+        .axis-x path,
+        .axis-y path {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis-x .tick line,
+        .axis-y .tick line {
+            stroke: black;
+        }
+
+        .axis-x line {
+          stroke-opacity: 0.5;
+          stroke-width: 0.5
+        }
+
+        .axis text {
+            color: black;
+            font-size: 12px;
+        }
+
+        .tooltip {
+          fill: black;
+          font-size: medium;
+          pointer-events: none;
+        }
+  </style>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+	<h1>Lab 9.2 Expensive States</h1>
+  <div id="povertyData-global"></div>
+  <script>
+    const width = 1200;
+    const height = 600;
+    const margin = { top: 20, right: 40, bottom: 100, left: 150 };
+
+    const svgMap = d3.select("#povertyData-global")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const tooltip = d3.select("body")
+      .append("div")
+      .attr("class", "tooltip");
+
+    const projection = d3.geoAlbersUsa()
+      .translate([width / 2, height / 2])
+      .scale(1000);
+    const path = d3.geoPath(projection);
+    const centroids = "./centroids.csv";
+    const expensiveStates = "./expensive-states.csv";
+    const usGeoJson = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
+  
+    Promise.all([
+      d3.csv(centroids),
+      d3.csv(expensiveStates),
+      d3.json(usGeoJson)
+    ]).then(function ([centroids, expensiveStates, usJson]) {
+      usJson = topojson.feature(usJson, usJson.objects.states);
+
+      console.log(usJson);
+      console.log(expensiveStates);
+      console.log(centroids);
+
+      const merged = centroids.map(d => {
+        const expensiveState = expensiveStates.find(e => e.State === d.State);
+        return {
+          ...d,
+          Latitude: +d.Latitude,
+          Longitude: +d.Longitude,
+          costIndex: expensiveState ? +expensiveState.costIndex : 0
+        }
+      });
+
+      merged.sort((a, b) => b.costIndex - a.costIndex);
+
+      const topTenExpensive = merged.slice(0, 10);
+
+      console.log(merged);
+
+      const index = expensiveStates.map(d => +d.costIndex);
+
+      console.log(index);
+
+      const linearSize = d3.scaleLinear()
+        .domain(d3.extent(index))
+        .range([5, 40]);
+
+      svgMap.append("g")
+        .attr("class", "legendSize")
+        .attr("transform", "translate(20, 40)");
+
+      var legendSize = d3.legendSize()
+        .scale(linearSize)
+        .shape('circle')
+        .shapePadding(15)
+        .labelOffset(20)
+        .orient('horizontal');
+
+      svgMap.select(".legendSize")
+        .call(legendSize);
+
+      svgMap.append("g")
+        .selectAll("path")
+        .data(usJson.features)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .attr("fill", d => topTenExpensive.findIndex(x => x.State == d.properties.name) >= 0 ? "green" : "gray")
+        .attr("stroke", "black")
+        .attr("stroke-width", 0.5)
+
+      svgMap.selectAll("circle")
+        .data(merged)
+        .enter()
+        .append("circle")
+        .attr("cx", d => projection([d.Longitude, d.Latitude])[0])
+        .attr("cy", d => projection([d.Longitude, d.Latitude])[1])
+        .attr("r", d => {
+          const costIndex = d.costIndex;
+          if (isNaN(costIndex) || costIndex < 0) return 0;
+          return linearSize(costIndex) || 0;
+        })
+        .attr("fill", "yellow")
+        .attr("opacity", 0.5)
+        .on("mouseover", function(event, d) {
+          tooltip
+            .style("opacity", 1)
+            .html(`
+              <strong>${d.State}</strong><br>
+              Cost Index: ${d.costIndex.toFixed(1)}
+            `)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 15) + "px");
+          
+          d3.select(this)
+            .attr("stroke", "#333")
+            .attr("stroke-width", 2);
+          })
+          .on("mousemove", function(event) {
+            tooltip
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 15) + "px");
+          })
+          .on("mouseout", function() {
+            tooltip.style("opacity", 0);
+            
+            d3.select(this)
+              .attr("stroke", null)
+              .attr("stroke-width", null);
+          });
+
+    })
+  </script>
+</body>
+</html>
