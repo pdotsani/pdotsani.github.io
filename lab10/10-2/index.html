@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Query</title>
+  <meta charset="utf-8">
+  <style>
+    .map-path {
+      fill: none;
+      stroke: black;
+      stroke-width: 0.5;
+    }
+    .line 
+    {
+      fill: none;
+      stroke: gainsboro;
+      stroke-width: 1.5;
+    }
+
+    .fillRed {
+      fill: none;
+      stroke: rgb(253,192,134);
+      stroke-width: 1.5;
+    }
+
+    .axis-x path,
+    .axis-y path {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+    }
+
+    .axis-x .tick line,
+    .axis-y .tick line {
+        stroke: black;
+    }
+
+    .axis-x line {
+      stroke-opacity: 0.5;
+      stroke-width: 0.5
+    }
+
+    .axis text {
+        color: black;
+        font-size: 12px;
+    }
+
+    .tooltip {
+      fill: black;
+      font-size: medium;
+      pointer-events: none;
+    }
+  </style>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <h1>Google Query Blackhat</h1>
+  <img src="google_query_blackhat.png" alt="Google Query" class="center">
+  <p>This pie chart has way too many categories. The poritions are hard to tell. The chart overall is hard to read.</p>
+  <h1>Google Query Whitehat</h1>
+  <div id="chart"></div>
+  <p>This d3 version has 5 categories and is manageable to view. It is properly labeled and the percentages are easy to read.</p>
+  <script>
+    const width = 1200;
+    const height = 600;
+    const margin = { top: 20, right: 40, bottom: 100, left: 150 };
+
+    const radius = Math.min(width, height) / 2 - 40;
+
+    let parsedData = [];
+    
+    var svg = d3.select("#chart")
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .append("g")
+      .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
+
+    d3.csv("trending.csv", row => {
+      return {
+        trends: row.Trends.replace(/^"(.*)"$/, '$1'),
+        searchVolume: +row["Search volume"]
+      };
+    }).then((data) => {
+      console.log(data);
+
+      const total = d3.sum(data, d => d.searchVolume);
+
+      const color = d3.scaleOrdinal()
+        .domain(data.map(d => d.trends))
+        .range(["#b3e2cd", "#fdcdac", "#cbd5e8", "#f4cae4", "#e6f5c9"]);
+
+      const pie = d3.pie()
+        .value(d => d.searchVolume)
+        .sort(null);
+        
+        const pieData = pie(data);
+        
+        console.log(data);
+        console.log(pieData);
+
+      const arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
+
+      const labelArc = d3.arc()
+        .innerRadius(radius * 0.6)
+        .outerRadius(radius * 0.6);
+        
+      const percentageArc = d3.arc()
+        .innerRadius(radius * 0.6)
+        .outerRadius(radius * 0.6);
+        
+      const volumeArc = d3.arc()
+        .innerRadius(radius * 0.6)
+        .outerRadius(radius * 0.6);
+
+      svg.selectAll("path")
+        .data(pieData)
+        .join("path")
+        .attr("d", d => arc(d))
+        .attr('fill', d => color(d.data.trends))
+        .attr("stroke", "white")
+        .style("stroke-width", "2px")
+        .style("opacity", 0.8);
+
+      svg.selectAll(".trend-label")
+        .data(pieData)
+        .join("text")
+          .attr("class", "trend-label")
+          .attr("transform", d => `translate(${labelArc.centroid(d)})`)
+          .attr("dy", "0em")
+          .attr("text-anchor", "middle")
+          .text(d => d.data.trends);
+
+      svg.selectAll(".percentage-label")
+        .data(pieData)
+        .join("text")
+          .attr("class", "percentage-label")
+          .attr("transform", d => {
+            const pos = percentageArc.centroid(d);
+            return `translate(${pos[0]}, ${pos[1] + 20})`;
+          })
+          .attr("text-anchor", "middle")
+          .text(d => `${(d.data.searchVolume / total * 100).toFixed(1)}%`);
+
+    });
+
+  </script>
+</body>
+</html>

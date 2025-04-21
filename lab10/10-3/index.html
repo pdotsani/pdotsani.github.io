@@ -1,0 +1,94 @@
+<html>
+  <head>
+    <title>Lab 10.3</title>
+    <style></style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+  </head>
+  <body>
+    <h1>Lab 10.3 Black Hat World map population</h1>
+    <div id="black-hat"></div>
+    <h1>Lab 10.3 White Hat World map population</h1>
+    <div id="corrected"></div>
+  </body>
+  <script>
+    const width = 400;
+    const height = 300;
+
+    // code taken from https://d3-graph-gallery.com/graph/choropleth_basic.html
+    const svgBlackHat = d3.select("#black-hat").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    const blackHatPath = d3.geoPath();
+    const blackHatProjection = d3.geoMercator()
+      .scale(70)
+      .center([0,20])
+      .translate([width / 2, height / 2]);
+
+    const blackHatData = new Map();
+    const blackHatColorScale = d3.scaleThreshold()
+      .domain([100000, 1000000, 10000000, 30000000, 100000000, 500000000])
+      .range(["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"]);
+
+    Promise.all([
+        d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
+        d3.csv("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world_population.csv", d => {
+          blackHatData.set(d.code, +d.pop);
+          return d;
+        })
+      ]).then(([topo]) => {
+        svgBlackHat.append("g")
+          .selectAll("path")
+          .data(topo.features)
+          .enter()
+          .append("path")
+            .attr("d", d3.geoPath()
+              .projection(blackHatProjection)
+            )
+            .attr("fill", function(d) {
+              d.total = blackHatData.get(d.id) || 0;
+              return blackHatColorScale(d.total);
+            });
+      })
+  </script>
+  <script>
+    // code taken from https://d3-graph-gallery.com/graph/choropleth_basic.html
+    const svg = d3.select("#corrected").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    const path = d3.geoPath();
+    const projection = d3.geoMercator()
+      .scale(70)
+      .center([0,20])
+      .translate([width / 2, height / 2]);
+
+    const data = new Map();
+    const colorScale = d3.scaleThreshold()
+      .domain([100000, 1000000, 10000000, 30000000, 100000000, 500000000])
+      .range(d3.schemeBlues[7]);
+
+    Promise.all([
+      d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
+      d3.csv("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world_population.csv", d => {
+        data.set(d.code, +d.pop);
+        return d;
+      })
+    ]).then(([topo]) => {
+      svg.append("g")
+        .selectAll("path")
+        .data(topo.features)
+        .enter()
+        .append("path")
+          .attr("d", d3.geoPath()
+            .projection(projection)
+          )
+          .attr("fill", function(d) {
+            d.total = data.get(d.id) || 0;
+            return colorScale(d.total);
+          });
+    })
+  </script>
+</html>
