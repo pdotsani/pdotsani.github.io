@@ -5,6 +5,16 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>D3 Bar Chart from CSV</title>
       <style>
+        h1, h2 {
+          text-align: center;
+        }
+
+        p {
+          margin: 0 auto;
+          text-align: center;
+          max-width: 800px;
+          font-size: large;
+        }
         .line {
           fill: none;
           stroke: gainsboro;
@@ -51,17 +61,27 @@
       <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   </head>
   <body>
-    <h1>Remittances from 2000 to 2023</h1>
-    <div id="remittances"></div>
-
-    <h1>Global Remittances totals from 2000 to 2023</h1>
-    <div id="remittances-global"></div>
+    <h1>Remittance impact on the Filipino economy</h1>
+    <!-- <h2>Global Remittances totals from 2000 to 2023</h2> -->
+    <hr>
     
-    <h1>Global Remittances totals from 2000 to 2023</h1>
+    <p>The world receives a significant amount of remittances from the us. Some of the top countries 
+      that receive remittances include India, Mexico, France, and the Philippines. While remittances in 
+      developing countries have a significant contribution to the economy, 
+      remittances in more developed countries don’t magnify the growth as much, but they do attract a larger volume.</p>
+
+    <div id="remittances-global"></div>
+      
+    <h2>Remittances from 2000 to 2023</h2>
+
+    <p>As we can see since 2000, growth in remittances has been steady for most countries, especially the top 4.</p>
+    <div id="remittances"></div>
+    
+    <h2>Percent of remittances to GDP from 2000 to 2023</h2>
     <div id="remittances-pi"></div>
     
-    <h1>Global Remittances totals from 2000 to 2023</h1>
-    <div id="gdp-pi"></div>
+    <h2>PI Unemployment from 2000 to 2023</h2>
+    <div id="gdp-unemployment"></div>
 
     <script>
       const width = 1200;
@@ -71,6 +91,18 @@
 
       let year = d3.timeParse("%Y");
 
+      const tooltipRemittances = d3.select("#remittances")
+        .append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0)
+        .style("position", "absolute")
+        .style("background-color", "white")
+        .style("border", "1px solid #ddd")
+        .style("border-radius", "3px")
+        .style("padding", "10px")
+        .style("pointer-events", "none")
+        .style("font-size", "12px");
+
       const svg = d3.select("#remittances")
         .append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -78,22 +110,20 @@
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-      const remittances = "https://gist.githubusercontent.com/pdotsani/4d3756927d63f71f6dc60c17e3cdb2a9/raw/4e9e2be97ca59b9e275836a099dd8a5e3c0702a5/remittances";
+      const remittances = "https://gist.githubusercontent.com/pdotsani/4d3756927d63f71f6dc60c17e3cdb2a9/raw/97fcc17c6b12ed4cc448facc9dcfc8c31c011ea6/remittances";
 
       d3.tsv(remittances).then(function (data) {
-
-        console.log(data.length);
-        console.log(data); 
-        
         const parsedData = data.map(d => ({
           value: +d.value,
           year: year(d.year),
           country: d.country
-        }));
+        })).filter(d =>  d.country == "Philippines" || d.county == "India" || d.country == "Mexico" || d.country == "France" || d.country == "Nigeria");
+
+        console.log(parsedData);
 
         const countries = [...new Set(data.map((d) => d.country))];
         const timeRange = data.map((d) => year(d.year));
-        const valueRange = data.map((d) => +d.value);
+        const valueRange = parsedData.map((d) => +d.value);
 
         const y = d3.scaleLinear()
           .domain(d3.extent(valueRange))
@@ -140,7 +170,8 @@
             .datum(countriesData)
             .attr("data-country", country)
             .attr("class", country == "Philippines" ? "fillRed" : "line")
-            .attr("d", line);
+            .attr("d", line)
+            
         }
 
         svg.selectAll("path[data-country='Philippines']")
@@ -161,6 +192,18 @@
         .center([0, 0])
         .translate([width / 2, height / 2]);
 
+        const tooltip = d3.select("#remittances-global")
+          .append("div")
+          .attr("class", "tooltip")
+          .style("opacity", 0)
+          .style("position", "absolute")
+          .style("background-color", "white")
+          .style("border", "solid")
+          .style("border-width", "1px")
+          .style("border-radius", "5px")
+          .style("padding", "10px")
+          .style("pointer-events", "none");
+
       
       
       const worldCloud = "https://gist.githubusercontent.com/pdotsani/1f891400eb2fbb943d3be57dc84bc5f7/raw/5e266250cfd560ca54f76e91ed587655542c7a92/world_data";
@@ -171,10 +214,7 @@
         d3.tsv(remittances),
         d3.json(worldGeoJson)
       ]).then(function ([world, remittances, worldJson]) {
-        console.log(worldJson)
         const data = d3.map(worldJson.features, d => d.properties);
-
-        console.log("world", world);
 
         const worldData = [...new Set(world.map(d => ({
           code: d['Country Code'],
@@ -187,8 +227,6 @@
           countryCodes[d.country] = d.code;
         });
 
-        console.log("word data", worldData);
-
         let year = d3.timeParse("%Y");
         
         const countries = [...new Set(remittances.map((d) => d.country))];
@@ -197,6 +235,10 @@
           value: remittances.filter(x => x.country == d).map((d) => +d.value).reduce((a, b) => a + b, 0),
           country: d
         }));
+
+        const sortedParsedData = parsedData.sort((a, b) => b.value - a.value);
+
+        console.log("sortedParsedData", sortedParsedData);
 
         const mapData = parsedData.map(d => ({
           code: countryCodes[d.country],
@@ -212,13 +254,13 @@
           d.properties.value = country.value;
         });
 
-        console.log("map data", mapData)
-
         const valueRange = parsedData.map((d) => +d.value);
 
         const scale = d3.scaleQuantile()
           .domain(d3.extent(valueRange))
           .range(d3.schemeGreens[7]);
+
+        const formatNumber = (value) => d3.format(".2s")(value).replace("G", "B")
 
         svgMap.append("g")
           .selectAll("path")
@@ -226,7 +268,39 @@
           .enter()
           .append("path")
           .attr("d", d3.geoPath().projection(projection))
-          .attr("fill", d => scale(d.properties.value));
+          .attr("fill", d => scale(d.properties.value))
+          .on("mouseover", function(event, d) {
+            d3.select(this)
+              .attr("stroke", "#000")
+              .attr("stroke-width", 1.5);
+            
+            tooltip.transition()
+              .duration(200)
+              .style("opacity", 0.9);
+            
+            const countryName = d.properties.countryName || d.properties.name || "Unknown";
+            const value = d.properties.value !== undefined ? d.properties.value : "No data";
+            
+            let tooltipContent = `<strong>${countryName}</strong>`;
+            if (value !== "No data") {
+              tooltipContent += `<br>Remittance Value: ${formatNumber(value)}`;
+            } else {
+              tooltipContent += "<br>No data available";
+            }
+            
+            tooltip.html(tooltipContent)
+              .style("left", (event.pageX + 15) + "px")
+              .style("top", (event.pageY - 28) + "px");
+          })
+          .on("mouseout", function() {
+            d3.select(this)
+              .attr("stroke", "#fff")
+              .attr("stroke-width", 0.5);
+            
+            tooltip.transition()
+              .duration(500)
+              .style("opacity", 0);
+          });
       })
     </script>
     <script>
@@ -237,33 +311,38 @@
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-      const svgGdp = d3.select("#gdp-pi")
+      const svgGdp = d3.select("#gdp-unemployment")
         .append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-      const pi_data = "https://gist.githubusercontent.com/pdotsani/1777e42c0e7d34940dbb32ba733f81d8/raw/734376210e455e549909e78cb4095c0a5c064040/world_bank_pi_data.csv";
+      const pi_data = "https://gist.githubusercontent.com/pdotsani/6e1d5ed4c1ccb04a1523beb617bba35a/raw/2622f51c3d9c523eabfc57dd751c736167730a64/world_bank_pi_data2.csv";
 
       d3.csv(pi_data).then(function (data) {
         console.log(data);
+
+        const indicators = [...new Set(data.map(d => d["Indicator Name"]))];
+
+        console.log("indicators", indicators);
 
         const personalRemittances = data.filter(d => d["Indicator Name"] == "Personal remittances received (% of GDP)")
           .map(d => ({
             year: d.Year,
             value: +d["Pivot Field Values"]
-          }));
+          })).filter(d => +d.year > 1999);
         
         const remittanceRange = personalRemittances.map((d) => d.value);
-
         const yRemittance = d3.scaleLinear()
           .domain(d3.extent(remittanceRange))
           .nice()
           .range([height, 0]);
-
+        
+        const timeRange = [...new Set(personalRemittances.map((d) => year(d.year)))];
+        console.log("timeRange", timeRange);
         const xRemittance = d3.scaleTime()
-          .domain(d3.extent(personalRemittances.map((d) => year(d.year))))
+          .domain(d3.extent(timeRange))
           .range([0, width]);
 
         const line = d3.line()
@@ -284,11 +363,12 @@
           .attr("class", "line strokeRed")
           .attr("d", line);
           
-        const gdpPerCapita = data.filter(d => d["Indicator Name"] == "GDP per capita (current US$)")
+        // const gdpPerCapita = data.filter(d => d["Indicator Name"] == "GDP per capita (current US$)")
+        const gdpPerCapita = data.filter(d => d["Indicator Name"] == "Unemployment total (% of total labor force) (modeled ILO estimate)")
           .map(d => ({
             year: d.Year,
             value: +d["Pivot Field Values"]
-          }));
+          })).filter(d => +d.year > 1999);
 
         const gdpRange = gdpPerCapita.map((d) => d.value);
 
