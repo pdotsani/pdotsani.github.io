@@ -15,6 +15,10 @@
           max-width: 800px;
           font-size: large;
         }
+
+        #remittances, #remittances-pi, #gdp-unemployment {
+          text-align: center;
+        }
         .line {
           fill: none;
           stroke: gainsboro;
@@ -74,7 +78,7 @@
       
     <h2>Remittances from 2000 to 2023</h2>
 
-    <p>As we can see since 2000, growth in remittances has been steady for most countries, especially the top 4.</p>
+    <p>As we can see since 2000, growth in remittances has been steady for most countries, especially the top 5.</p>
     <div id="remittances"></div>
     
     <h2>Percent of remittances to GDP from 2000 to 2023</h2>
@@ -84,9 +88,9 @@
     <div id="gdp-unemployment"></div>
 
     <script>
-      const width = 1200;
-      const height = 600;
-      const margin = { top: 20, right: 40, bottom: 100, left: 150 };
+      const widthLineChart = 800;
+      const heightLineChart = 400;
+      const marginLineChart = { top: 20, right: 40, bottom: 100, left: 150 };
       let parsedData = [];
 
       let year = d3.timeParse("%Y");
@@ -105,19 +109,20 @@
 
       const svg = d3.select("#remittances")
         .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", widthLineChart + marginLineChart.left + marginLineChart.right)
+        .attr("height", heightLineChart + marginLineChart.top + marginLineChart.bottom)
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
       const remittances = "https://gist.githubusercontent.com/pdotsani/4d3756927d63f71f6dc60c17e3cdb2a9/raw/97fcc17c6b12ed4cc448facc9dcfc8c31c011ea6/remittances";
+      const countriesToInclude = ["Philippines", "India", "Mexico", "France", "Nigeria"];
 
       d3.tsv(remittances).then(function (data) {
         const parsedData = data.map(d => ({
           value: +d.value,
           year: year(d.year),
           country: d.country
-        })).filter(d =>  d.country == "Philippines" || d.county == "India" || d.country == "Mexico" || d.country == "France" || d.country == "Nigeria");
+        })).filter(d =>  countriesToInclude.includes(d.country));
 
         console.log(parsedData);
 
@@ -128,15 +133,19 @@
         const y = d3.scaleLinear()
           .domain(d3.extent(valueRange))
           .nice()
-          .range([height, 0]);
+          .range([heightLineChart, 0]);
 
         const x = d3.scaleTime()
           .domain(d3.extent(timeRange))
-          .range([0, width]);
+          .range([0, widthLineChart]);
+
+        const scaleLine = d3.scaleOrdinal()
+          .domain(countriesToInclude)
+          .range(["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854"]);
 
         svg.append("g")
           .attr("class", "axis axis-x")
-          .attr("transform", `translate(0, ${height})`)
+          .attr("transform", `translate(0, ${heightLineChart})`)
           .call(d3.axisBottom(x));
 
         svg.append("g")
@@ -164,13 +173,16 @@
           .x(d => x(d.year))
           .y(d => y(d.value));
 
-        for (let country of countries) {
+        for (let country of countriesToInclude) {
           const countriesData = parsedData.filter((d) => d.country == country);
+          console.log("countrydata", countriesData);
           svg.append("path")
             .datum(countriesData)
             .attr("data-country", country)
-            .attr("class", country == "Philippines" ? "fillRed" : "line")
+            .attr("stroke-width", 2)
             .attr("d", line)
+            .attr("fill", "none")
+            .attr("stroke", scaleLine(country))
             
         }
 
@@ -179,6 +191,10 @@
       })
     </script>
     <script>
+      const width = 1200;
+      const height = 600;
+      const margin = { top: 20, right: 40, bottom: 100, left: 150 };
+
       const svgMap = d3.select("#remittances-global")
         .append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -306,17 +322,17 @@
     <script>
       const svgRemittances = d3.select("#remittances-pi")
         .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", widthLineChart + marginLineChart.left + marginLineChart.right)
+        .attr("height", heightLineChart + marginLineChart.top + marginLineChart.bottom)
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
       const svgGdp = d3.select("#gdp-unemployment")
         .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
+        .attr("width", widthLineChart + marginLineChart.left + marginLineChart.right)
+        .attr("height", heightLineChart + marginLineChart.top + marginLineChart.bottom)
         .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+        .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
       const pi_data = "https://gist.githubusercontent.com/pdotsani/6e1d5ed4c1ccb04a1523beb617bba35a/raw/2622f51c3d9c523eabfc57dd751c736167730a64/world_bank_pi_data2.csv";
 
@@ -337,13 +353,13 @@
         const yRemittance = d3.scaleLinear()
           .domain(d3.extent(remittanceRange))
           .nice()
-          .range([height, 0]);
+          .range([heightLineChart, 0]);
         
         const timeRange = [...new Set(personalRemittances.map((d) => year(d.year)))];
         console.log("timeRange", timeRange);
         const xRemittance = d3.scaleTime()
           .domain(d3.extent(timeRange))
-          .range([0, width]);
+          .range([0, widthLineChart]);
 
         const line = d3.line()
           .x(d => xRemittance(year(d.year)))
@@ -351,7 +367,7 @@
 
         svgRemittances.append("g")
           .attr("class", "axis axis-x")
-          .attr("transform", `translate(0, ${height})`)
+          .attr("transform", `translate(0, ${heightLineChart})`)
           .call(d3.axisBottom(xRemittance));
 
         svgRemittances.append("g")
@@ -375,11 +391,11 @@
         const yGdp = d3.scaleLinear()
           .domain(d3.extent(gdpRange))
           .nice()
-          .range([height, 0]);
+          .range([heightLineChart, 0]);
 
         const xGdp = d3.scaleTime()
           .domain(d3.extent(gdpPerCapita.map((d) => year(d.year))))
-          .range([0, width]);
+          .range([0, widthLineChart]);
 
         const lineGdp = d3.line()
           .x(d => xGdp(year(d.year)))
@@ -387,7 +403,7 @@
 
         svgGdp.append("g")
           .attr("class", "axis axis-x")
-          .attr("transform", `translate(0, ${height})`)
+          .attr("transform", `translate(0, ${heightLineChart})`)
           .call(d3.axisBottom(xGdp));
 
         svgGdp.append("g")
