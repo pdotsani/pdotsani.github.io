@@ -3,7 +3,7 @@
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>D3 Bar Chart from CSV</title>
+      <title>Filipinos and Remittances</title>
       <style>
         h1, h2 {
           text-align: center;
@@ -16,7 +16,7 @@
           font-size: large;
         }
 
-        #remittances, #remittances-pi, #gdp-unemployment {
+        #remittances, #remittances-pi, #pi-net-migration {
           text-align: center;
         }
         .line {
@@ -73,25 +73,38 @@
       that receive remittances include India, Mexico, France, and the Philippines. While remittances in 
       developing countries have a significant contribution to the economy, 
       remittances in more developed countries don’t magnify the growth as much, but they do attract a larger volume.</p>
-
+    
+    <h2>Global Remittances totals from 2000 to 2023</h2>
     <div id="remittances-global"></div>
       
-    <h2>Remittances from 2000 to 2023</h2>
-
+    
     <p>As we can see since 2000, growth in remittances has been steady for most countries, especially the top 5.</p>
+    <h2>Remittances from 2000 to 2023</h2>
     <div id="remittances"></div>
     
+    <p>Remittances spent on the Philippine GDP showed consistent growth until approximately 2005, 
+      after which this percentage began to decline, then level off. This trend conflicts with data indicating that the 
+      aggregate remittances increased steadily throughout this entire period. This could be explained by recipients 
+      of remittances not reinvesting the funds into the Filipino economy. Filipinos might be also choosing to save 
+      rather than spend them domestically, or potentially directing their investments toward other countries, effectively 
+      contributing to foreign rather than domestic GDP growth.</p>
     <h2>Percent of remittances to GDP from 2000 to 2023</h2>
     <div id="remittances-pi"></div>
     
-    <h2>PI Unemployment from 2000 to 2023</h2>
-    <div id="gdp-unemployment"></div>
+    <h2>PI Net Migration from 2000 to 2023</h2>
+    <p>Based on the data, we can see that more people are leaving the 
+      Philippines than entering it. This could be a sign that remittances will continue to 
+      be steady, if not continue to grow.
+    </p>
+    <div id="pi-net-migration"></div>
 
     <script>
       const widthLineChart = 800;
       const heightLineChart = 400;
       const marginLineChart = { top: 20, right: 40, bottom: 100, left: 150 };
       let parsedData = [];
+
+      const formatNumber = (value) => d3.format(".2s")(value).replace("G", "B");
 
       let year = d3.timeParse("%Y");
 
@@ -114,6 +127,12 @@
         .append("g")
         .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
+      const dot = svg.select("#remittances")
+        .append("circle")
+        .attr("r", 3)
+        .attr("fill", "white")
+        .attr("stroke-width", 2);
+
       const remittances = "https://gist.githubusercontent.com/pdotsani/4d3756927d63f71f6dc60c17e3cdb2a9/raw/97fcc17c6b12ed4cc448facc9dcfc8c31c011ea6/remittances";
       const countriesToInclude = ["Philippines", "India", "Mexico", "France", "Nigeria"];
 
@@ -123,8 +142,6 @@
           year: year(d.year),
           country: d.country
         })).filter(d =>  countriesToInclude.includes(d.country));
-
-        console.log(parsedData);
 
         const countries = [...new Set(data.map((d) => d.country))];
         const timeRange = data.map((d) => year(d.year));
@@ -154,20 +171,22 @@
             return d3.format("$,.1f")(d / 1e9) + "B";
           }));
 
-        // svg.append("text")
-        //   .attr("class", "label")
-        //   .attr("text-anchor", "middle")
-        //   .attr("x", width / 2)
-        //   .attr("y", height + 40)
-        //   .text("Year");
+          svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "middle")
+            .attr("x", widthLineChart / 2)
+            .attr("y", heightLineChart + 40)
+            .style("font-size", "14px")
+            .text("Year");
 
-        // svg.append("text")
-        //   .attr("class", "label")
-        //   .attr("text-anchor", "middle")
-        //   .attr("transform", "rotate(-90)")
-        //   .attr("x", -height / 2)
-        //   .attr("y", -margin.left / 2)
-        //   .text("Amount");
+          svg.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -heightLineChart / 2)
+            .attr("y", -marginLineChart.left / 1.5)
+            .style("font-size", "14px")
+            .text("Remittances (Billions USD)");
 
         const line = d3.line()
           .x(d => x(d.year))
@@ -175,7 +194,6 @@
 
         for (let country of countriesToInclude) {
           const countriesData = parsedData.filter((d) => d.country == country);
-          console.log("countrydata", countriesData);
           svg.append("path")
             .datum(countriesData)
             .attr("data-country", country)
@@ -183,6 +201,46 @@
             .attr("d", line)
             .attr("fill", "none")
             .attr("stroke", scaleLine(country))
+            .on("mouseover", function (event, d) {
+            d3.select(this)
+              .attr("stroke-width", 4);
+
+            dot.select("circle")
+              .attr("cx", x(d.year))
+              .attr("cy", y(d.value));
+              
+            tooltipRemittances.transition()
+              .duration(200)
+              .style("opacity", 0.9);
+      })
+      .on("mousemove", function (event, d) {
+        const country = d3.select(this).attr("data-country");
+        const mouseX = event.pageX;
+        const mouseY = event.pageY;
+        
+        const mouseDate = x.invert(d3.pointer(event, this)[0]);
+        const bisect = d3.bisector(d => d.year).left;
+        const index = bisect(d, mouseDate);
+        const dataPoint = d[index - 1] || d[0];
+        
+        const tooltipContent = `
+          <strong>${country}</strong><br>
+          Year: ${d3.timeFormat("%Y")(dataPoint.year)}<br>
+          Remittances: ${formatNumber(dataPoint.value)}
+        `;
+        
+          tooltipRemittances.html(tooltipContent)
+            .style("left", (mouseX + 10) + "px")
+            .style("top", (mouseY - 15) + "px");
+        })
+        .on("mouseout", function () {
+          d3.select(this)
+            .attr("stroke-width", 2);
+            
+          tooltipRemittances.transition()
+            .duration(500)
+            .style("opacity", 0);
+        });
             
         }
 
@@ -254,8 +312,6 @@
 
         const sortedParsedData = parsedData.sort((a, b) => b.value - a.value);
 
-        console.log("sortedParsedData", sortedParsedData);
-
         const mapData = parsedData.map(d => ({
           code: countryCodes[d.country],
           value: d.value
@@ -274,9 +330,20 @@
 
         const scale = d3.scaleQuantile()
           .domain(d3.extent(valueRange))
-          .range(d3.schemeGreens[7]);
+          .range(d3.schemeGreens[7])
 
-        const formatNumber = (value) => d3.format(".2s")(value).replace("G", "B")
+        svgMap.append("g")
+          .attr("class", "legendQuant")
+          .attr("transform", "translate(20,20)");
+
+        var legendQuant = d3.legendColor()
+          .labelFormat(d3.format(".2s"))
+          .shapeWidth(30)
+          .title("Remittances (Billions USD)")
+          .scale(scale)
+
+        svgMap.select(".legendQuant")
+          .call(legendQuant);
 
         svgMap.append("g")
           .selectAll("path")
@@ -327,21 +394,17 @@
         .append("g")
         .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
-      const svgGdp = d3.select("#gdp-unemployment")
+      const svgGdp = d3.select("#pi-net-migration")
         .append("svg")
         .attr("width", widthLineChart + marginLineChart.left + marginLineChart.right)
         .attr("height", heightLineChart + marginLineChart.top + marginLineChart.bottom)
         .append("g")
         .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
-      const pi_data = "https://gist.githubusercontent.com/pdotsani/6e1d5ed4c1ccb04a1523beb617bba35a/raw/2622f51c3d9c523eabfc57dd751c736167730a64/world_bank_pi_data2.csv";
+      const pi_data = "https://gist.githubusercontent.com/pdotsani/2f8d2db5860e962387bcda636274bf6e/raw/3e7987eb3b0f21323de209ffce8c5e343b99efa6/world_bank_pi_data3.csv";
 
       d3.csv(pi_data).then(function (data) {
-        console.log(data);
-
         const indicators = [...new Set(data.map(d => d["Indicator Name"]))];
-
-        console.log("indicators", indicators);
 
         const personalRemittances = data.filter(d => d["Indicator Name"] == "Personal remittances received (% of GDP)")
           .map(d => ({
@@ -349,14 +412,22 @@
             value: +d["Pivot Field Values"]
           })).filter(d => +d.year > 1999);
         
+        const GDPGrowth = data.filter(d => d["Indicator Name"] == "GDP growth (annual %)")
+          .map(d => ({
+            year: d.Year,
+            value: +d["Pivot Field Values"]
+          })).filter(d => +d.year > 1999);
+        
         const remittanceRange = personalRemittances.map((d) => d.value);
+        const GDPGrowthRange = GDPGrowth.map((d) => d.value);
+        const remittanceAndGDPGrowthRange = [...remittanceRange, ...GDPGrowthRange];
+
         const yRemittance = d3.scaleLinear()
-          .domain(d3.extent(remittanceRange))
+          .domain(d3.extent(remittanceAndGDPGrowthRange))
           .nice()
           .range([heightLineChart, 0]);
         
         const timeRange = [...new Set(personalRemittances.map((d) => year(d.year)))];
-        console.log("timeRange", timeRange);
         const xRemittance = d3.scaleTime()
           .domain(d3.extent(timeRange))
           .range([0, widthLineChart]);
@@ -364,6 +435,24 @@
         const line = d3.line()
           .x(d => xRemittance(year(d.year)))
           .y(d => yRemittance(d.value));
+
+        const ordinal = d3.scaleOrdinal()
+          .domain(["GDP Growth", "Remittances Received"])
+          .range(["#1b9e77", "#7570b3"]);
+
+        svgRemittances.append("g")
+          .attr("class", "legendOrdinal")
+          .attr("transform", "translate(20,250)");
+          
+        var legendOrdinal = d3.legendColor()
+          .shape("path", d3.symbol().type(d3.symbolCircle).size(150)())
+          .shapePadding(10)
+          //use cellFilter to hide the "e" cell
+          .cellFilter(function(d){ return d.label !== "e" })
+          .scale(ordinal);
+
+        svgRemittances.select(".legendOrdinal")
+          .call(legendOrdinal);
 
         svgRemittances.append("g")
           .attr("class", "axis axis-x")
@@ -376,25 +465,38 @@
 
         svgRemittances.append("path")
           .datum(personalRemittances)
-          .attr("class", "line strokeRed")
+          .attr("fill", "none")
+          .attr("stroke", "#7570b3")
+          .attr("stroke-width", 2)
           .attr("d", line);
-          
-        // const gdpPerCapita = data.filter(d => d["Indicator Name"] == "GDP per capita (current US$)")
-        const gdpPerCapita = data.filter(d => d["Indicator Name"] == "Unemployment total (% of total labor force) (modeled ILO estimate)")
+        
+        for (let gdp of GDPGrowth) {
+          svgRemittances.append("circle")
+            .attr("r", 5)
+            .attr("fill", "none")
+            .attr("stroke", "#1b9e77")
+            .attr("stroke-width", 2)
+            .attr("cx", xRemittance(year(gdp.year)))
+            .attr("cy", yRemittance(gdp.value));  
+        }
+        
+          const netMigration = data.filter(d => d["Indicator Name"] == "Net migration")
           .map(d => ({
             year: d.Year,
             value: +d["Pivot Field Values"]
           })).filter(d => +d.year > 1999);
 
-        const gdpRange = gdpPerCapita.map((d) => d.value);
+          console.log(netMigration)
+
+        const netMigrationRange = netMigration.map((d) => d.value);
 
         const yGdp = d3.scaleLinear()
-          .domain(d3.extent(gdpRange))
+          .domain(d3.extent(netMigrationRange))
           .nice()
           .range([heightLineChart, 0]);
 
-        const xGdp = d3.scaleTime()
-          .domain(d3.extent(gdpPerCapita.map((d) => year(d.year))))
+        const xGdp = d3.scaleBand()
+          .domain(netMigration.map((d) => d.year).sort((a, b) => a - b))
           .range([0, widthLineChart]);
 
         const lineGdp = d3.line()
@@ -409,14 +511,20 @@
         svgGdp.append("g")
           .attr("class", "axis axis-y")
           .call(d3.axisLeft(yGdp));
-
-        svgGdp.append("path")
-          .datum(gdpPerCapita)
-          .attr("class", "line strokeRed")
-          .attr("d", lineGdp);
-
-        console.log(personalRemittances);
-        console.log(gdpPerCapita);
+        
+        svgGdp.selectAll(".bar")
+          .data(netMigration)
+          .enter()
+          .append("rect")
+          .attr("class", "bar")
+          .attr("x", d => xGdp(d.year))
+          .attr("y", d => yGdp(d.value))
+          .attr("width", xGdp.bandwidth())
+          .attr("y", d => d.value < 0 ? yGdp(0) : yGdp(d.value))
+          .attr("height", d => Math.abs(yGdp(d.value) - yGdp(0)))
+          .attr("fill", d => d.value < 0 ? "#af8dc3" : "#7fbf7b")
+          .attr("stroke", "black")
+          .attr("stroke-width", 2);
       });
     </script>
   </body>
