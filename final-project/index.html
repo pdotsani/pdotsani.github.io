@@ -58,14 +58,23 @@
           font-size: medium;
           pointer-events: none;
         }
+
+        #remittances-container {
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+        }
       </style>
       <script src="https://d3js.org/d3.v7.min.js"></script>
       <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
       <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+      <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
   </head>
   <body>
     <h1>Remittance impact on the Filipino economy</h1>
+    <h2>By Patrick San Juan</h2>
     <!-- <h2>Global Remittances totals from 2000 to 2023</h2> -->
     <hr>
     
@@ -77,18 +86,18 @@
     <h2>Global Remittances totals from 2000 to 2023</h2>
     <div id="remittances-global"></div>
       
-    
-    <p>As we can see since 2000, growth in remittances has been steady for most countries, especially the top 5.</p>
     <h2>Remittances from 2000 to 2023</h2>
-    <div id="remittances"></div>
+    <p>As we can see since 2000, growth in remittances has been steady for most countries, especially the top 5.</p>
+    <div id="remittances-container">
+      <div id="remittances"></div>
+      <div id="remittances-legend"></div>
+    </div>
     
-    <p>Remittances spent on the Philippine GDP showed consistent growth until approximately 2005, 
-      after which this percentage began to decline, then level off. This trend conflicts with data indicating that the 
-      aggregate remittances increased steadily throughout this entire period. This could be explained by recipients 
-      of remittances not reinvesting the funds into the Filipino economy. Filipinos might be also choosing to save 
-      rather than spend them domestically, or potentially directing their investments toward other countries, effectively 
-      contributing to foreign rather than domestic GDP growth.</p>
-    <h2>Percent of remittances to GDP from 2000 to 2023</h2>
+    <h2>Remittance as a percentage of the GDP from 2000 to 2023</h2>
+    <p>Remittances showed a consistent growth in our previous data. Here it shows it has little to no effect on
+      the GDP of the country. Despite some downturns in GDP growth, remittances have been a consistend source of 
+      the Philiipine income, only decreasing ever so slightly from 2010 onward.
+    </h2>
     <div id="remittances-pi"></div>
     
     <h2>PI Net Migration from 2000 to 2023</h2>
@@ -133,8 +142,10 @@
         .attr("fill", "white")
         .attr("stroke-width", 2);
 
-      const remittances = "https://gist.githubusercontent.com/pdotsani/4d3756927d63f71f6dc60c17e3cdb2a9/raw/97fcc17c6b12ed4cc448facc9dcfc8c31c011ea6/remittances";
-      const countriesToInclude = ["Philippines", "India", "Mexico", "France", "Nigeria"];
+      // const remittances = "https://gist.githubusercontent.com/pdotsani/4d3756927d63f71f6dc60c17e3cdb2a9/raw/97fcc17c6b12ed4cc448facc9dcfc8c31c011ea6/remittances";
+      const remittances = "./remittances_final.csv";
+      const countriesToInclude = ["India", "Mexico","Philippines", "France", "Nigeria"];
+      const colorsForCountries = ["#fc8d62", "#8da0cb", "#66c2a5", "#e78ac3", "#a6d854"];
 
       d3.tsv(remittances).then(function (data) {
         const parsedData = data.map(d => ({
@@ -158,7 +169,29 @@
 
         const scaleLine = d3.scaleOrdinal()
           .domain(countriesToInclude)
-          .range(["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854"]);
+          .range(colorsForCountries);
+
+        const ordinal = d3.scaleOrdinal()
+          .domain(countriesToInclude)
+          .range(colorsForCountries);
+
+        const legendSVG = d3.select("#remittances-legend")
+          .append("svg")
+          .attr("width", 200)
+          .attr("height", 500);
+          
+        const legendOrdinal = d3.legendColor()
+          .shape("path", d3.symbol().type(d3.symbolCircle).size(150)())
+          .shapePadding(10)
+          .cellFilter(function(d){ return d.label !== "e" })
+          .scale(ordinal);
+          
+        legendSVG.append("g")
+          .attr("class", "legendOrdinal")
+          .attr("transform", "translate(20,20)");
+        
+        legendSVG.select(".legendOrdinal")
+          .call(legendOrdinal);
 
         svg.append("g")
           .attr("class", "axis axis-x")
@@ -280,7 +313,8 @@
 
       
       
-      const worldCloud = "https://gist.githubusercontent.com/pdotsani/1f891400eb2fbb943d3be57dc84bc5f7/raw/5e266250cfd560ca54f76e91ed587655542c7a92/world_data";
+      // const worldCloud = "https://gist.githubusercontent.com/pdotsani/1f891400eb2fbb943d3be57dc84bc5f7/raw/5e266250cfd560ca54f76e91ed587655542c7a92/world_data";
+      const worldCloud = "./world_data_final.csv";
       const worldGeoJson = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
       Promise.all([
@@ -337,10 +371,13 @@
           .attr("transform", "translate(20,20)");
 
         var legendQuant = d3.legendColor()
-          .labelFormat(d3.format(".2s"))
-          .shapeWidth(30)
-          .title("Remittances (Billions USD)")
-          .scale(scale)
+        .labelFormat(d3.format("$.2s"))
+        .shapeWidth(30)
+        .title("Remittances (Billions USD)")
+        .scale(scale)
+        .labels(({i, generatedLabels }) => {
+          return generatedLabels[i].replaceAll("G", "B");
+        });
 
         svgMap.select(".legendQuant")
           .call(legendQuant);
@@ -401,7 +438,8 @@
         .append("g")
         .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
-      const pi_data = "https://gist.githubusercontent.com/pdotsani/2f8d2db5860e962387bcda636274bf6e/raw/3e7987eb3b0f21323de209ffce8c5e343b99efa6/world_bank_pi_data3.csv";
+      // const pi_data = "https://gist.githubusercontent.com/pdotsani/2f8d2db5860e962387bcda636274bf6e/raw/3e7987eb3b0f21323de209ffce8c5e343b99efa6/world_bank_pi_data3.csv";
+      const pi_data = "./pi_data_rev.csv";
 
       d3.csv(pi_data).then(function (data) {
         const indicators = [...new Set(data.map(d => d["Indicator Name"]))];
@@ -421,6 +459,32 @@
         const remittanceRange = personalRemittances.map((d) => d.value);
         const GDPGrowthRange = GDPGrowth.map((d) => d.value);
         const remittanceAndGDPGrowthRange = [...remittanceRange, ...GDPGrowthRange];
+
+        const annotations = [
+          {
+            note: {
+              title: "Post Pandemic Recession",
+              label: "Worst recession in the Philippines since 1984.",
+            },
+            x: 845,
+            y: 408,
+            dy: -75,
+            dx: -100, 
+          },
+          {
+            note: {
+              title: "Low GDP Growth",
+              label: "Drop in GDP growth started a decrease of remittances in the economy.",
+            },
+            x: 465,
+            y: 235,
+            dy: 15,
+            dx: 75,
+          }
+        ].map(function (d) {
+          d.color = '#E8336D';
+          return d;
+        });
 
         const yRemittance = d3.scaleLinear()
           .domain(d3.extent(remittanceAndGDPGrowthRange))
@@ -451,6 +515,16 @@
           .cellFilter(function(d){ return d.label !== "e" })
           .scale(ordinal);
 
+        const makeAnnotations = d3
+          .annotation()
+          .type(d3.annotationLabel)
+          .annotations(annotations);
+
+        d3.select('#remittances-pi svg')
+          .append('g')
+          .attr('class', 'annotation-group')
+          .call(makeAnnotations);
+
         svgRemittances.select(".legendOrdinal")
           .call(legendOrdinal);
 
@@ -461,7 +535,7 @@
 
         svgRemittances.append("g")
           .attr("class", "axis axis-y")
-          .call(d3.axisLeft(yRemittance));
+          .call(d3.axisLeft(yRemittance).tickFormat(d => `${d}%`));
 
         svgRemittances.append("path")
           .datum(personalRemittances)
@@ -469,6 +543,23 @@
           .attr("stroke", "#7570b3")
           .attr("stroke-width", 2)
           .attr("d", line);
+
+          svgRemittances.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "middle")
+            .attr("x", widthLineChart / 2)
+            .attr("y", heightLineChart + 40)
+            .style("font-size", "14px")
+            .text("Year");
+
+          svgRemittances.append("text")
+            .attr("class", "axis-label")
+            .attr("text-anchor", "middle")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -heightLineChart / 2)
+            .attr("y", -marginLineChart.left / 1.5)
+            .style("font-size", "14px")
+            .text("Percent %");
         
         for (let gdp of GDPGrowth) {
           svgRemittances.append("circle")
@@ -511,6 +602,23 @@
         svgGdp.append("g")
           .attr("class", "axis axis-y")
           .call(d3.axisLeft(yGdp));
+
+        svgGdp.append("text")
+          .attr("class", "axis-label")
+          .attr("text-anchor", "middle")
+          .attr("x", widthLineChart / 2)
+          .attr("y", heightLineChart + 40)
+          .style("font-size", "14px")
+          .text("Year");
+
+        svgGdp.append("text")
+          .attr("class", "axis-label")
+          .attr("text-anchor", "middle")
+          .attr("transform", "rotate(-90)")
+          .attr("x", -heightLineChart / 2)
+          .attr("y", -marginLineChart.left / 1.5)
+          .style("font-size", "14px")
+          .text("Net migration (Thousands)");
         
         svgGdp.selectAll(".bar")
           .data(netMigration)
@@ -524,7 +632,7 @@
           .attr("height", d => Math.abs(yGdp(d.value) - yGdp(0)))
           .attr("fill", d => d.value < 0 ? "#af8dc3" : "#7fbf7b")
           .attr("stroke", "black")
-          .attr("stroke-width", 2);
+          .attr("stroke-width", 1);
       });
     </script>
   </body>
