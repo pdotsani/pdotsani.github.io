@@ -5,8 +5,16 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Filipinos and Remittances</title>
       <style>
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+        }
+        
         h1, h2 {
           text-align: center;
+        }
+
+        h2, p {
+          margin-bottom: 15px;
         }
 
         p {
@@ -16,47 +24,13 @@
           font-size: large;
         }
 
+        hr {
+          width: 70%;
+          margin-bottom: 25px;
+        }
+
         #remittances, #remittances-pi, #pi-net-migration {
           text-align: center;
-        }
-        .line {
-          fill: none;
-          stroke: gainsboro;
-          stroke-width: 1.5;
-        }
-
-        .fillRed {
-          fill: none;
-          stroke: rgb(253,192,134);
-          stroke-width: 1.5;
-        }
-
-        .axis-x path,
-        .axis-y path {
-            fill: none;
-            stroke: black;
-            shape-rendering: crispEdges;
-        }
-
-        .axis-x .tick line,
-        .axis-y .tick line {
-            stroke: black;
-        }
-
-        .axis-x line {
-          stroke-opacity: 0.5;
-          stroke-width: 0.5
-        }
-
-        .axis text {
-            color: black;
-            font-size: 12px;
-        }
-
-        .tooltip {
-          fill: black;
-          font-size: medium;
-          pointer-events: none;
         }
 
         #remittances-container {
@@ -67,15 +41,14 @@
         }
       </style>
       <script src="https://d3js.org/d3.v7.min.js"></script>
-      <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-      <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+      <!-- <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script> -->
+      <!-- <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script> -->
       <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
       <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
   </head>
   <body>
-    <h1>Remittance impact on the Filipino economy</h1>
+    <h1>Remittance Impact on the Filipino Economy</h1>
     <h2>By Patrick San Juan</h2>
-    <!-- <h2>Global Remittances totals from 2000 to 2023</h2> -->
     <hr>
     
     <p>The world receives a significant amount of remittances from the us. Some of the top countries 
@@ -83,20 +56,20 @@
       developing countries have a significant contribution to the economy, 
       remittances in more developed countries don’t magnify the growth as much, but they do attract a larger volume.</p>
     
-    <h2>Global Remittances totals from 2000 to 2023</h2>
+    <h2>Remittance Totals to the US from 2000 to 2023</h2>
     <div id="remittances-global"></div>
       
-    <h2>Remittances from 2000 to 2023</h2>
-    <p>As we can see since 2000, growth in remittances has been steady for most countries, especially the top 5.</p>
+    <h2>Remittances to the US from 2000 to 2023</h2>
+    <p>Since 2000, growth in remittances has been steady for most countries, especially the top 5.</p>
     <div id="remittances-container">
       <div id="remittances"></div>
       <div id="remittances-legend"></div>
     </div>
     
-    <h2>Remittance as a percentage of the GDP from 2000 to 2023</h2>
+    <h2>PI Remittances as a Percentage of the GDP from 2000 to 2023</h2>
     <p>Remittances showed a consistent growth in our previous data. Here it shows it has little to no effect on
       the GDP of the country. Despite some downturns in GDP growth, remittances have been a consistend source of 
-      the Philiipine income, only decreasing ever so slightly from 2010 onward.
+      the Filipino income, only decreasing ever so slightly from 2010 onward.
     </h2>
     <div id="remittances-pi"></div>
     
@@ -106,6 +79,12 @@
       be steady, if not continue to grow.
     </p>
     <div id="pi-net-migration"></div>
+
+    <hr>
+
+    <footer>
+      <p>Data source: World Bank: <a href="https://data.worldbank.org/">data.worldbank.org</a></p>
+    </footer>
 
     <script>
       const widthLineChart = 800;
@@ -142,7 +121,6 @@
         .attr("fill", "white")
         .attr("stroke-width", 2);
 
-      // const remittances = "https://gist.githubusercontent.com/pdotsani/4d3756927d63f71f6dc60c17e3cdb2a9/raw/97fcc17c6b12ed4cc448facc9dcfc8c31c011ea6/remittances";
       const remittances = "./remittances_final.csv";
       const countriesToInclude = ["India", "Mexico","Philippines", "France", "Nigeria"];
       const colorsForCountries = ["#fc8d62", "#8da0cb", "#66c2a5", "#e78ac3", "#a6d854"];
@@ -313,7 +291,6 @@
 
       
       
-      // const worldCloud = "https://gist.githubusercontent.com/pdotsani/1f891400eb2fbb943d3be57dc84bc5f7/raw/5e266250cfd560ca54f76e91ed587655542c7a92/world_data";
       const worldCloud = "./world_data_final.csv";
       const worldGeoJson = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
@@ -388,29 +365,33 @@
           .enter()
           .append("path")
           .attr("d", d3.geoPath().projection(projection))
-          .attr("fill", d => scale(d.properties.value))
+          .attr("fill", d => d.properties.name == "USA" ? "#bdbdbd" : scale(d.properties.value))
           .on("mouseover", function(event, d) {
-            d3.select(this)
-              .attr("stroke", "#000")
-              .attr("stroke-width", 1.5);
-            
-            tooltip.transition()
-              .duration(200)
-              .style("opacity", 0.9);
-            
             const countryName = d.properties.countryName || d.properties.name || "Unknown";
             const value = d.properties.value !== undefined ? d.properties.value : "No data";
             
-            let tooltipContent = `<strong>${countryName}</strong>`;
-            if (value !== "No data") {
-              tooltipContent += `<br>Remittance Value: ${formatNumber(value)}`;
-            } else {
-              tooltipContent += "<br>No data available";
-            }
+            if (countryName != "USA") {
+              d3.select(this)
+                .attr("stroke", "#000")
+                .attr("stroke-width", 1.5);
             
-            tooltip.html(tooltipContent)
-              .style("left", (event.pageX + 15) + "px")
-              .style("top", (event.pageY - 28) + "px");
+            
+              tooltip.transition()
+                .duration(200)
+                .style("opacity", 0.9);
+              
+              
+              let tooltipContent = `<strong>${countryName}</strong>`;
+              if (value !== "No data") {
+                tooltipContent += `<br>Remittance Value: ${formatNumber(value)}`;
+              } else {
+                tooltipContent += "<br>No data available";
+              }
+              
+              tooltip.html(tooltipContent)
+                .style("left", (event.pageX + 15) + "px")
+                .style("top", (event.pageY - 28) + "px");
+            }
           })
           .on("mouseout", function() {
             d3.select(this)
@@ -438,7 +419,6 @@
         .append("g")
         .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
-      // const pi_data = "https://gist.githubusercontent.com/pdotsani/2f8d2db5860e962387bcda636274bf6e/raw/3e7987eb3b0f21323de209ffce8c5e343b99efa6/world_bank_pi_data3.csv";
       const pi_data = "./pi_data_rev.csv";
 
       d3.csv(pi_data).then(function (data) {
