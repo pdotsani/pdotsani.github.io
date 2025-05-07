@@ -54,7 +54,7 @@
       developing countries have a significant contribution to the economy, 
       remittances in more developed countries don’t magnify the growth as much, but they do attract a larger volume.</p>
     
-    <h2>Remittance Totals from 2000 to 2023</h2>
+    <h2>Remittance Totals from 2023</h2>
     <div id="remittances-global"></div>
       
     <h2>Remittances to the US from 2000 to 2023</h2>
@@ -235,7 +235,7 @@
         const tooltipContent = `
           <strong>${country}</strong><br>
           Year: ${d3.timeFormat("%Y")(dataPoint.year)}<br>
-          Remittances: ${formatNumber(dataPoint.value)}
+          Remittances: $${formatNumber(dataPoint.value)}
         `;
         
           tooltipRemittances.html(tooltipContent)
@@ -315,7 +315,8 @@
         const countries = [...new Set(remittances.map((d) => d.country))];
         
         const parsedData = countries.map(d => ({
-          value: remittances.filter(x => x.country == d).map((d) => +d.value).reduce((a, b) => a + b, 0),
+          // value: remittances.filter(x => x.country == d).map((d) => +d.value).reduce((a, b) => a + b, 0),
+          value: +remittances.find(x => x.country === d && x.year === '2023')?.value,
           country: d
         }));
 
@@ -381,7 +382,7 @@
               
               let tooltipContent = `<strong>${countryName}</strong>`;
               if (value !== "No data") {
-                tooltipContent += `<br>Remittance Value: ${formatNumber(value)}`;
+                tooltipContent += `<br>Remittance Value: $${formatNumber(value)}`;
               } else {
                 tooltipContent += "<br>No data available";
               }
@@ -563,8 +564,8 @@
             
             const tooltipContent = `
               Year: ${closestPoint.year}<br>
-              Remittance %: ${formatNumber(closestPoint.value)}<br>
-              GDP %: ${formatNumber(closestGDP.value)}
+              Remittance: %${formatNumber(closestPoint.value)}<br>
+              GDP: %${formatNumber(closestGDP.value)}
             `;
             
               tooltipPI.html(tooltipContent)
@@ -631,8 +632,8 @@
               
               const tooltipContent = `
                 Year: ${closestPoint.year}<br>
-                Remittance %: ${formatNumber(closestPoint.value)}<br>
-                GDP %: ${formatNumber(closestGDP.value)}
+                Remittance: %${formatNumber(closestPoint.value)}<br>
+                GDP: %${formatNumber(closestGDP.value)}
               `;
 
                 d3.select(this)
