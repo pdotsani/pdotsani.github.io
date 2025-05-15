@@ -40,11 +40,13 @@
           align-items: center;
         }
       </style>
+      <!-- dependencies -->
       <script src="https://d3js.org/d3.v7.min.js"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js" integrity="sha512-wNH6xsp2n8CfB91nrBtfc4sfLwYPBMjSWVUwQOp60AYYXH6i8yCwuKFZ4rgK2i6pQek/b+bSyR7b01/922IBzQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
       <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
   </head>
   <body>
+    <!-- title -->
     <h1>Remittances Impact on the Philippines</h1>
     <h2>By Patrick San Juan</h2>
     <hr>
@@ -54,9 +56,11 @@
       developing countries have a significant contribution to the economy, 
       remittances in more developed countries don’t magnify the growth as much, but they do attract a larger volume.</p>
     
+    <!-- choropleth map -->
     <h2>Remittance Totals from 2023</h2>
     <div id="remittances-global"></div>
       
+    <!-- time series chart -->
     <h2>Remittances from the US</h2>
     <p>Since 2000, growth in remittances has been steady for most countries, especially the top 5.</p>
     <div id="remittances-container">
@@ -64,6 +68,7 @@
       <div id="remittances-legend"></div>
     </div>
     
+    <!-- gdp vs remittances chart -->
     <h2>PI Remittances as a Percentage of the GDP</h2>
     <p>Remittances showed a consistent growth in our previous data. Here it shows it has little to no effect on
       the GDP of the country. Despite some downturns in GDP growth, remittances have been a consistend source of 
@@ -71,6 +76,7 @@
     </h2>
     <div id="remittances-pi"></div>
     
+    <!-- net migration chart -->
     <h2>PI Net Migration</h2>
     <p>Based on the data, we can see that more people are leaving the 
       Philippines than entering it. This could be a sign that remittances will continue to 
@@ -85,15 +91,19 @@
     </footer>
 
     <script>
+      // standard chart dimensions
       const widthLineChart = 800;
       const heightLineChart = 400;
       const marginLineChart = { top: 20, right: 40, bottom: 100, left: 150 };
       let parsedData = [];
 
+      // format number with a billion separator
       const formatNumber = (value) => d3.format(".2s")(value).replace("G", "B");
 
+      // parse string to year
       let year = d3.timeParse("%Y");
 
+      // tooltip for time series chart
       const tooltipRemittances = d3.select("#remittances")
         .append("div")
         .attr("class", "tooltip")
@@ -106,6 +116,7 @@
         .style("pointer-events", "none")
         .style("font-size", "12px");
 
+      // svg for time series chart
       const svg = d3.select("#remittances")
         .append("svg")
         .attr("width", widthLineChart + marginLineChart.left + marginLineChart.right)
@@ -113,16 +124,11 @@
         .append("g")
         .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
-      const dot = svg.select("#remittances")
-        .append("circle")
-        .attr("r", 3)
-        .attr("fill", "white")
-        .attr("stroke-width", 2);
-
       const remittances = "./remittances_final.csv";
       const countriesToInclude = ["India", "Mexico","Philippines", "France", "Nigeria"];
       const colorsForCountries = ["#fc8d62", "#8da0cb", "#66c2a5", "#e78ac3", "#a6d854"];
 
+      // begin formatting data for time series chart
       d3.tsv(remittances).then(function (data) {
         const parsedData = data.map(d => ({
           value: +d.value,
@@ -151,6 +157,7 @@
           .domain(countriesToInclude)
           .range(colorsForCountries);
 
+        // legend for time series chart
         const legendSVG = d3.select("#remittances-legend")
           .append("svg")
           .attr("width", 200)
@@ -172,13 +179,15 @@
         svg.append("g")
           .attr("class", "axis axis-x")
           .attr("transform", `translate(0, ${heightLineChart})`)
-          .call(d3.axisBottom(x));
+          .call(d3.axisBottom(x))
+          .style("font-size", "14px");
 
         svg.append("g")
           .attr("class", "axis axis-y")
           .call(d3.axisLeft(y).tickFormat(d => {
             return d3.format("$,.1f")(d / 1e9) + "B";
-          }));
+          }))
+          .style("font-size", "14px");
 
           svg.append("text")
             .attr("class", "axis-label")
@@ -200,7 +209,9 @@
         const line = d3.line()
           .x(d => x(d.year))
           .y(d => y(d.value));
-
+        
+        // take the data for each country and draw a line on the chart
+        // also add a tooltip for each line
         for (let country of countriesToInclude) {
           const countriesData = parsedData.filter((d) => d.country == country);
           svg.append("path")
@@ -213,10 +224,6 @@
             .on("mouseover", function (event, d) {
             d3.select(this)
               .attr("stroke-width", 4);
-
-            dot.select("circle")
-              .attr("cx", x(d.year))
-              .attr("cy", y(d.value));
               
             tooltipRemittances.transition()
               .duration(200)
@@ -253,11 +260,13 @@
             
         }
 
+        // bring the Philippine line to the front
         svg.selectAll("path[data-country='Philippines']")
           .raise();
       })
     </script>
     <script>
+      // dimensions for choropleth map
       const width = 1200;
       const height = 600;
       const margin = { top: 20, right: 40, bottom: 100, left: 150 };
@@ -292,6 +301,9 @@
       const worldCloud = "./world_data_final.csv";
       const worldGeoJson = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
+      // begin formatting data for choropleth map
+      // first, get the data from the csv files
+      // then, format the data for the map
       Promise.all([
         d3.tsv(worldCloud),
         d3.tsv(remittances),
@@ -316,7 +328,7 @@
         
         const parsedData = countries.map(d => ({
           // value: remittances.filter(x => x.country == d).map((d) => +d.value).reduce((a, b) => a + b, 0),
-          value: +remittances.find(x => x.country === d && x.year === '2023')?.value,
+          value: +remittances.find(x => x.country === d && x.year === '2023')?.value, // get the value for each country in the year 2023
           country: d
         }));
 
@@ -327,6 +339,7 @@
           value: d.value
         }));
 
+        // add the value to the geojson data
         worldJson.features.forEach(d => {
           const country = mapData.filter(x => x.code == d.id)[0];
           if (country == undefined) {
@@ -346,6 +359,7 @@
           .attr("class", "legendQuant")
           .attr("transform", "translate(20,20)");
 
+        // legend for choropleth map
         var legendQuant = d3.legendColor()
         .labelFormat(d3.format("$.2s"))
         .shapeWidth(30)
@@ -358,6 +372,8 @@
         svgMap.select(".legendQuant")
           .call(legendQuant);
 
+        // draw the choropleth map
+        // also add a tooltip for each country
         svgMap.append("g")
           .selectAll("path")
           .data(worldJson.features)
@@ -404,6 +420,10 @@
       })
     </script>
     <script>
+      // these two charts have similar dimensions and are positioned next to each other
+      // thus we can work in the same script tag to render two svgs
+
+      // dimensions for gdp vs remittances chart
       const svgRemittances = d3.select("#remittances-pi")
         .append("svg")
         .attr("width", widthLineChart + marginLineChart.left + marginLineChart.right)
@@ -411,9 +431,11 @@
         .append("g")
         .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
 
+      // dimensions for net migration chart
+      const migrationChartWidth = widthLineChart + 300;
       const svgGdp = d3.select("#pi-net-migration")
         .append("svg")
-        .attr("width", widthLineChart + marginLineChart.left + marginLineChart.right)
+        .attr("width", migrationChartWidth + marginLineChart.left + marginLineChart.right)
         .attr("height", heightLineChart + marginLineChart.top + marginLineChart.bottom)
         .append("g")
         .attr("transform", `translate(${marginLineChart.left},${marginLineChart.top})`);
@@ -432,6 +454,7 @@
         .style("font-size", "12px")
         .style("box-shadow", "0px 0px 6px rgba(0, 0, 0, 0.3)");
 
+      // begin formatting data for gdp vs remittances chart
       d3.csv(pi_data).then(function (data) {
         const indicators = [...new Set(data.map(d => d["Indicator Name"]))];
 
@@ -450,7 +473,8 @@
         const remittanceRange = personalRemittances.map((d) => d.value);
         const GDPGrowthRange = GDPGrowth.map((d) => d.value);
         const remittanceAndGDPGrowthRange = [...remittanceRange, ...GDPGrowthRange];
-
+        
+        // annotations config for gdp vs remittances chart
         const annotations = [
           {
             note: {
@@ -521,12 +545,15 @@
         svgRemittances.append("g")
           .attr("class", "axis axis-x")
           .attr("transform", `translate(0, ${heightLineChart})`)
-          .call(d3.axisBottom(xRemittance));
+          .call(d3.axisBottom(xRemittance))
+          .style("font-size", "14px");
 
         svgRemittances.append("g")
           .attr("class", "axis axis-y")
-          .call(d3.axisLeft(yRemittance).tickFormat(d => `${d}%`));
+          .call(d3.axisLeft(yRemittance).tickFormat(d => `${d}%`))
+          .style("font-size", "14px");
 
+        // draw the line for remittances on the chart
         svgRemittances.append("path")
           .datum(personalRemittances)
           .attr("fill", "none")
@@ -537,6 +564,8 @@
             d3.select(this)
               .attr("stroke-width", 4);
           })
+          // tooltip for the remittances line
+          // this is the same as the circle points tooltip
           .on("mousemove", function (event, d) {
             const [mouseX] = d3.pointer(event, this);
     
@@ -599,6 +628,7 @@
             .style("font-size", "14px")
             .text("Percent %");
         
+        // draw circle points for each GDP growth year
         for (let gdp of GDPGrowth) {
           svgRemittances.append("circle")
             .attr("r", 5)
@@ -607,6 +637,8 @@
             .attr("stroke-width", 2)
             .attr("cx", xRemittance(year(gdp.year)))
             .attr("cy", yRemittance(gdp.value))
+            // tooltip for the circle points
+            // this is the same as the line tooltip
             .on("mouseover", function (event, d) {
               const [mouseX] = d3.pointer(event, this);
       
@@ -659,7 +691,8 @@
             year: d.Year,
             value: +d["Pivot Field Values"]
           })).filter(d => +d.year > 1999);
-
+        
+        // this range includes both positive and negative values
         const netMigrationRange = netMigration.map((d) => d.value);
 
         const yGdp = d3.scaleLinear()
@@ -669,7 +702,7 @@
 
         const xGdp = d3.scaleBand()
           .domain(netMigration.map((d) => d.year).sort((a, b) => a - b))
-          .range([0, widthLineChart]);
+          .range([0, migrationChartWidth]);
 
         const lineGdp = d3.line()
           .x(d => xGdp(year(d.year)))
@@ -678,16 +711,18 @@
         svgGdp.append("g")
           .attr("class", "axis axis-x")
           .attr("transform", `translate(0, ${heightLineChart})`)
-          .call(d3.axisBottom(xGdp));
+          .call(d3.axisBottom(xGdp))
+          .style("font-size", "14px");
 
         svgGdp.append("g")
           .attr("class", "axis axis-y")
-          .call(d3.axisLeft(yGdp));
+          .call(d3.axisLeft(yGdp))
+          .style("font-size", "14px");
 
         svgGdp.append("text")
           .attr("class", "axis-label")
           .attr("text-anchor", "middle")
-          .attr("x", widthLineChart / 2)
+          .attr("x", migrationChartWidth / 2)
           .attr("y", heightLineChart + 40)
           .style("font-size", "14px")
           .text("Year");
@@ -700,7 +735,20 @@
           .attr("y", -marginLineChart.left / 1.5)
           .style("font-size", "14px")
           .text("Net migration");
+      const tooltipMigration = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0)
+        .style("position", "absolute")
+        .style("background-color", "white")
+        .style("border", "1px solid #ddd")
+        .style("border-radius", "3px")
+        .style("padding", "10px")
+        .style("pointer-events", "none")
+        .style("font-size", "12px")
+        .style("box-shadow", "0px 0px 6px rgba(0, 0, 0, 0.3)");
         
+        // draw the bars for each net migration year
+        // also a tooltip for each bar
         svgGdp.selectAll(".bar")
           .data(netMigration)
           .enter()
@@ -713,7 +761,31 @@
           .attr("height", d => Math.abs(yGdp(d.value) - yGdp(0)))
           .attr("fill", d => d.value < 0 ? "#af8dc3" : "#7fbf7b")
           .attr("stroke", "black")
-          .attr("stroke-width", 1);
+          .attr("stroke-width", 1)
+          .on("mouseover", function (event, d) {
+              const tooltipContent = `
+                Year: ${d.year}<br>
+                Net migration: ${d.value}<br>
+              `;
+
+                d3.select(this)
+                  .attr("stroke-width", 2);
+              
+                tooltipMigration.html(tooltipContent)
+                  .style("left", event.pageX + "px")
+                  .style("top", event.pageY + "px");
+                tooltipMigration.transition()
+                  .duration(200)
+                  .style("opacity", 1);
+              })
+              .on("mouseout", function () {
+                d3.select(this)
+                  .attr("stroke-width", 1);
+                  
+                tooltipMigration.transition()
+                  .duration(500)
+                  .style("opacity", 0);
+              });
       });
     </script>
   </body>
